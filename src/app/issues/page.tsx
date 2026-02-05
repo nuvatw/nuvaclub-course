@@ -1,0 +1,92 @@
+import { Suspense } from 'react'
+import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { getIssues } from '@/app/actions/issues'
+import { getUserData } from '@/lib/auth'
+import { IssueList } from '@/components/issues'
+import { Button } from '@/components/ui/Button'
+
+interface PageProps {
+  searchParams: Promise<{
+    status?: string
+    priority?: string
+    search?: string
+    page?: string
+  }>
+}
+
+export const metadata = {
+  title: '問題 | nuvaClub',
+  description: '內部問題追蹤系統',
+}
+
+export default async function IssuesPage({ searchParams }: PageProps) {
+  const userData = await getUserData()
+
+  // Require authentication
+  if (!userData?.user) {
+    redirect('/')
+  }
+
+  const params = await searchParams
+
+  // Fetch issues with filters
+  const filters = {
+    status: params.status as any,
+    priority: params.priority as any,
+    search: params.search,
+    page: params.page ? parseInt(params.page) : 1,
+  }
+
+  const result = await getIssues(filters)
+
+  return (
+    <main className="min-h-screen bg-background px-4 py-8">
+      <div className="mx-auto max-w-7xl">
+        {/* Header */}
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">問題</h1>
+            <p className="mt-1 text-zinc-500">內部問題追蹤系統</p>
+          </div>
+          <Link href="/issues/new">
+            <Button>
+              <svg
+                className="mr-2 h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              建立問題單
+            </Button>
+          </Link>
+        </div>
+
+        {/* Issue List */}
+        <Suspense
+          fallback={
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-32 animate-pulse rounded-lg bg-zinc-800" />
+              ))}
+            </div>
+          }
+        >
+          <IssueList
+            issues={result.issues}
+            total={result.total}
+            page={result.page}
+            totalPages={result.totalPages}
+          />
+        </Suspense>
+      </div>
+    </main>
+  )
+}
