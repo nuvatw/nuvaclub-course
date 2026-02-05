@@ -10,6 +10,7 @@ import { ProgressBar } from '@/components/ui/ProgressBar'
 import { Button } from '@/components/ui/Button'
 import { deleteProject } from '@/app/actions/projects'
 import { formatDate } from '@/lib/utils'
+import { useFocusTrap } from '@/lib/useFocusTrap'
 import type { ProjectStep, StepLink } from '@/types/database'
 
 interface StepWithLinks extends ProjectStep {
@@ -29,18 +30,14 @@ interface Project {
 interface ProjectDetailClientProps {
   project: Project
   isAdmin: boolean
-  isAuthenticated: boolean
   canDelete: boolean
-  userId?: string
   children: ReactNode // Streamed comments section
 }
 
 export function ProjectDetailClient({
   project,
   isAdmin,
-  isAuthenticated,
   canDelete,
-  userId,
   children,
 }: ProjectDetailClientProps) {
   const router = useRouter()
@@ -49,6 +46,11 @@ export function ProjectDetailClient({
   const [selectedStepId, setSelectedStepId] = useState<string>(
     project.project_steps[0]?.id || ''
   )
+
+  const deleteModalRef = useFocusTrap<HTMLDivElement>({
+    isOpen: showDeleteConfirm,
+    onClose: () => setShowDeleteConfirm(false),
+  })
 
   const handleDelete = useCallback(() => {
     startTransition(async () => {
@@ -174,13 +176,19 @@ export function ProjectDetailClient({
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-project-modal-title"
+        >
           <motion.div
+            ref={deleteModalRef}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             className="w-full max-w-md rounded-lg border border-zinc-700 bg-zinc-900 p-6"
           >
-            <h3 className="text-lg font-semibold text-foreground">確定要刪除這個課程？</h3>
+            <h3 id="delete-project-modal-title" className="text-lg font-semibold text-foreground">確定要刪除這個課程？</h3>
             <p className="mt-2 text-sm text-zinc-400">
               此操作無法復原。所有相關的步驟、連結和留言也會被一併刪除。
             </p>

@@ -5,6 +5,7 @@ import { getIssues } from '@/app/actions/issues'
 import { getUserData } from '@/lib/auth'
 import { IssueList } from '@/components/issues'
 import { Button } from '@/components/ui/Button'
+import type { IssueStatus, IssuePriority } from '@/types/issues'
 
 interface PageProps {
   searchParams: Promise<{
@@ -13,6 +14,17 @@ interface PageProps {
     search?: string
     page?: string
   }>
+}
+
+const VALID_STATUSES = ['all', 'not_started', 'in_progress', 'done', 'cancelled'] as const
+const VALID_PRIORITIES = ['all', 'low', 'medium', 'high'] as const
+
+function isValidStatus(value: string | undefined): value is IssueStatus | 'all' {
+  return value === undefined || VALID_STATUSES.includes(value as typeof VALID_STATUSES[number])
+}
+
+function isValidPriority(value: string | undefined): value is IssuePriority | 'all' {
+  return value === undefined || VALID_PRIORITIES.includes(value as typeof VALID_PRIORITIES[number])
 }
 
 export const metadata = {
@@ -30,10 +42,10 @@ export default async function IssuesPage({ searchParams }: PageProps) {
 
   const params = await searchParams
 
-  // Fetch issues with filters
+  // Fetch issues with filters (validate params before using)
   const filters = {
-    status: params.status as any,
-    priority: params.priority as any,
+    status: isValidStatus(params.status) ? params.status : 'all',
+    priority: isValidPriority(params.priority) ? params.priority : 'all',
     search: params.search,
     page: params.page ? parseInt(params.page) : 1,
   }

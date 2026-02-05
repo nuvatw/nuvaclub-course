@@ -246,7 +246,7 @@ export function CommentWall({ projectId, comments, isAuthenticated, userId, isAd
                             onClick={() => handleDelete(comment.id)}
                             disabled={isPending}
                             className="text-zinc-500 hover:text-red-400 transition-colors disabled:opacity-50"
-                            title="刪除留言"
+                            aria-label="刪除留言"
                           >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path

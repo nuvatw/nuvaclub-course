@@ -3,6 +3,7 @@
 import { useState, useCallback, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
+import { useToast } from '@/components/ui/Toast'
 import { ImageUploader } from './ImageUploader'
 import { PrioritySelector } from './StatusBadge'
 import { type IssuePriority, type IssueWithDetails } from '@/types/issues'
@@ -15,6 +16,7 @@ interface IssueFormProps {
 
 export function IssueForm({ mode, issue }: IssueFormProps) {
   const router = useRouter()
+  const { showToast } = useToast()
   const [isPending, startTransition] = useTransition()
 
   // Form state (simplified)
@@ -28,16 +30,17 @@ export function IssueForm({ mode, issue }: IssueFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const existingImages = issue?.images || []
+  const issueId = issue?.id
 
   const handleRemoveExisting = useCallback(
     async (imageId: string) => {
-      if (!issue?.id) return
-      const result = await deleteIssueImage(issue.id, imageId)
+      if (!issueId) return
+      const result = await deleteIssueImage(issueId, imageId)
       if (!result.success) {
-        alert(result.error || '刪除圖片失敗')
+        showToast({ type: 'error', message: result.error || '刪除圖片失敗' })
       }
     },
-    [issue?.id]
+    [issueId, showToast]
   )
 
   const validate = useCallback(() => {
@@ -88,14 +91,14 @@ export function IssueForm({ mode, issue }: IssueFormProps) {
           if (result.success && result.issueId) {
             router.push(`/issues/${result.issueId}`)
           } else {
-            alert(result.error || '建立失敗')
+            showToast({ type: 'error', message: result.error || '建立失敗' })
           }
-        } else if (issue?.id) {
-          const result = await updateIssue(issue.id, formData)
+        } else if (issueId) {
+          const result = await updateIssue(issueId, formData)
           if (result.success) {
-            router.push(`/issues/${issue.id}`)
+            router.push(`/issues/${issueId}`)
           } else {
-            alert(result.error || '更新失敗')
+            showToast({ type: 'error', message: result.error || '更新失敗' })
           }
         }
       })
@@ -103,7 +106,7 @@ export function IssueForm({ mode, issue }: IssueFormProps) {
     [
       validate,
       mode,
-      issue?.id,
+      issueId,
       title,
       priority,
       whyBackground,
@@ -112,6 +115,7 @@ export function IssueForm({ mode, issue }: IssueFormProps) {
       acceptanceCriteria,
       imageIds,
       router,
+      showToast,
     ]
   )
 

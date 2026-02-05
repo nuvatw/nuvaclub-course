@@ -1,18 +1,21 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export function NavigationProgress() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const [isNavigating, setIsNavigating] = useState(false)
   const [progress, setProgress] = useState(0)
+  const isNavigatingRef = useRef(false)
 
-  // 導航完成時重置
+  // Reset progress when navigation completes
+  // Note: setState in effect is intentional here - we need to animate progress bar
+  // when route changes, which is an external event we're responding to
+  /* eslint-disable react-hooks/set-state-in-effect -- Intentional: responding to route change */
   useEffect(() => {
-    setIsNavigating(false)
+    isNavigatingRef.current = false
     setProgress(100)
 
     const timer = setTimeout(() => {
@@ -21,6 +24,7 @@ export function NavigationProgress() {
 
     return () => clearTimeout(timer)
   }, [pathname, searchParams])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // 監聽點擊事件來偵測導航開始
   useEffect(() => {
@@ -32,12 +36,12 @@ export function NavigationProgress() {
 
       if (link) {
         const href = link.getAttribute('href')
-        // 只處理內部連結
+        // Only handle internal links
         if (href && href.startsWith('/') && !href.startsWith('//')) {
-          // 檢查是否是不同頁面
+          // Check if navigating to a different page
           const currentPath = pathname + (searchParams.toString() ? '?' + searchParams.toString() : '')
           if (href !== currentPath && href !== pathname) {
-            setIsNavigating(true)
+            isNavigatingRef.current = true
             setProgress(20)
 
             // 模擬進度增長

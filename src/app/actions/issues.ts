@@ -21,6 +21,7 @@ import {
   type IssueImage,
 } from '@/types/issues'
 import { deleteObject, deleteObjects, getPublicUrl, generatePresignedGetUrl } from '@/lib/r2'
+import { sanitizeSearchInput } from '@/lib/sanitize'
 
 // ============================================
 // Helper Functions
@@ -154,7 +155,8 @@ export async function getIssues(filters?: IssueFiltersInput): Promise<PaginatedI
     query = query.eq('created_by', created_by)
   }
   if (search) {
-    query = query.ilike('title', `%${search}%`)
+    const sanitizedSearch = sanitizeSearchInput(search)
+    query = query.ilike('title', `%${sanitizedSearch}%`)
   }
 
   // Apply pagination and ordering

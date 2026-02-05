@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { confirmUploadSchema } from '@/lib/validations/issue'
+import { checkRateLimit, RATE_LIMIT_CONFIGS, createRateLimitResponse } from '@/lib/rateLimit'
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -17,6 +18,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (authError || !user) {
       return NextResponse.json({ error: '未登入' }, { status: 401 })
+    }
+
+    // Rate limiting
+    const rateLimitResult = checkRateLimit(user.id, 'confirm', RATE_LIMIT_CONFIGS.imageConfirm)
+    if (!rateLimitResult.success) {
+      const response = createRateLimitResponse(rateLimitResult)
+      return NextResponse.json(response.body, { status: response.status, headers: response.headers })
     }
 
     // Parse and validate request body

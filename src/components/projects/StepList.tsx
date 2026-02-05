@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import { motion } from 'framer-motion'
 import { getCategoryColor } from '@/lib/utils'
 import type { ProjectStep, StepLink } from '@/types/database'
@@ -14,7 +15,7 @@ interface StepListProps {
   onSelectStep: (stepId: string) => void
 }
 
-export function StepList({ steps, selectedStepId, onSelectStep }: StepListProps) {
+export const StepList = memo(function StepList({ steps, selectedStepId, onSelectStep }: StepListProps) {
   return (
     <div className="space-y-1">
       {steps.map((step, index) => {
@@ -122,4 +123,4 @@ export function StepList({ steps, selectedStepId, onSelectStep }: StepListProps)
       })}
     </div>
   )
-}
+})

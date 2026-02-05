@@ -44,9 +44,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     <ProjectDetailClient
       project={project}
       isAdmin={isAdmin}
-      isAuthenticated={!!user}
       canDelete={canDelete}
-      userId={user?.id}
     >
       {/* Stream comments separately - they require auth check */}
       <Suspense fallback={<CommentsLoading />}>

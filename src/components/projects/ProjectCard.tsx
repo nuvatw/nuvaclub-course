@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { getCategoryColor } from '@/lib/utils'
@@ -9,16 +10,14 @@ interface ProjectCardProps {
   id: string
   title: string
   description: string | null
-  currentStepIndex: number
   steps: ProjectStep[]
   index?: number
 }
 
-export function ProjectCard({
+export const ProjectCard = memo(function ProjectCard({
   id,
   title,
   description,
-  currentStepIndex,
   steps,
   index = 0
 }: ProjectCardProps) {
@@ -96,7 +95,6 @@ export function ProjectCard({
               {steps.map((step, stepIndex) => {
                 const isDone = step.status === 'done'
                 const isInProgress = step.status === 'in_progress'
-                const isPending = step.status === 'not_started'
 
                 return (
                   <div key={step.id} className="flex-1 group relative">
@@ -180,4 +178,4 @@ export function ProjectCard({
       </Link>
     </motion.div>
   )
-}
+})

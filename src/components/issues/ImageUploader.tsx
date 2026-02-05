@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { PresignResponse } from '@/types/issues'
 
@@ -304,15 +305,19 @@ export function ImageUploader({
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             {existingImages.map((img) => (
               <div key={img.id} className="group relative aspect-square overflow-hidden rounded-lg">
-                <img
+                <Image
                   src={img.url}
                   alt={img.filename}
-                  className="h-full w-full object-cover"
+                  fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                  className="object-cover"
+                  unoptimized
                 />
                 {onRemoveExisting && (
                   <button
                     type="button"
                     onClick={() => onRemoveExisting(img.id)}
+                    aria-label="移除圖片"
                     className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 text-white opacity-0 transition-opacity hover:bg-red-600 group-hover:opacity-100"
                   >
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -352,12 +357,15 @@ export function ImageUploader({
                     className="group relative aspect-square overflow-hidden rounded-lg bg-zinc-800"
                   >
                     {/* Preview image */}
-                    <img
+                    <Image
                       src={img.preview}
                       alt={img.file.name}
-                      className={`h-full w-full object-cover transition-opacity ${
+                      fill
+                      sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                      className={`object-cover transition-opacity ${
                         img.status === 'done' ? 'opacity-100' : 'opacity-50'
                       }`}
+                      unoptimized
                     />
 
                     {/* Progress overlay */}
@@ -425,6 +433,7 @@ export function ImageUploader({
                     <button
                       type="button"
                       onClick={() => removeImage(img.id)}
+                      aria-label="移除圖片"
                       className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 text-white opacity-0 transition-opacity hover:bg-red-600 group-hover:opacity-100"
                     >
                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

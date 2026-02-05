@@ -4,6 +4,7 @@ import {
   type IssueStatus,
   type IssuePriority,
   ISSUE_STATUS_LABELS,
+  ISSUE_STATUS_COLORS,
   ISSUE_PRIORITY_LABELS,
   ISSUE_PRIORITY_COLORS,
 } from '@/types/issues'
@@ -14,9 +15,10 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status }: StatusBadgeProps) {
   const label = ISSUE_STATUS_LABELS[status]
+  const colorClass = ISSUE_STATUS_COLORS[status]
 
   return (
-    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-zinc-700 text-zinc-200">
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium ${colorClass}`}>
       {label.zh}
     </span>
   )

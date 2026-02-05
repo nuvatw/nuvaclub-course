@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { deleteObject } from '@/lib/r2'
+import { checkRateLimit, RATE_LIMIT_CONFIGS, createRateLimitResponse } from '@/lib/rateLimit'
 
 type RouteParams = {
   params: Promise<{ id: string }>
@@ -26,6 +27,13 @@ export async function DELETE(
 
     if (authError || !user) {
       return NextResponse.json({ error: '未登入' }, { status: 401 })
+    }
+
+    // Rate limiting
+    const rateLimitResult = checkRateLimit(user.id, 'delete', RATE_LIMIT_CONFIGS.imageDelete)
+    if (!rateLimitResult.success) {
+      const response = createRateLimitResponse(rateLimitResult)
+      return NextResponse.json(response.body, { status: response.status, headers: response.headers })
     }
 
     // Get the image

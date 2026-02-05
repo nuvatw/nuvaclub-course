@@ -8,29 +8,8 @@ import {
   isAllowedContentType,
   isAllowedFileSize,
 } from '@/lib/r2'
+import { checkRateLimit, RATE_LIMIT_CONFIGS, createRateLimitResponse } from '@/lib/rateLimit'
 import type { PresignResponse } from '@/types/issues'
-
-// Rate limiting: simple in-memory store (use Redis in production)
-const uploadAttempts = new Map<string, { count: number; resetAt: number }>()
-const RATE_LIMIT = 20 // max uploads per window
-const RATE_WINDOW = 60 * 1000 // 1 minute
-
-function checkRateLimit(userId: string): boolean {
-  const now = Date.now()
-  const userLimit = uploadAttempts.get(userId)
-
-  if (!userLimit || now > userLimit.resetAt) {
-    uploadAttempts.set(userId, { count: 1, resetAt: now + RATE_WINDOW })
-    return true
-  }
-
-  if (userLimit.count >= RATE_LIMIT) {
-    return false
-  }
-
-  userLimit.count++
-  return true
-}
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -50,8 +29,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Rate limiting
-    if (!checkRateLimit(user.id)) {
-      return NextResponse.json({ error: '上傳太頻繁，請稍後再試' }, { status: 429 })
+    const rateLimitResult = checkRateLimit(user.id, 'presign', RATE_LIMIT_CONFIGS.imagePresign)
+    if (!rateLimitResult.success) {
+      const response = createRateLimitResponse(rateLimitResult)
+      return NextResponse.json(response.body, { status: response.status, headers: response.headers })
     }
 
     // Parse and validate request body

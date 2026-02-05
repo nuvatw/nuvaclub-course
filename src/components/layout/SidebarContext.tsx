@@ -39,10 +39,14 @@ export function SidebarProvider({ children }: SidebarProviderProps) {
   }, [clearAutoCollapseTimer])
 
   // Reset to collapsed on route change
+  // Note: setState in effect is intentional here - sidebar should collapse
+  // when user navigates to a new page for better UX
+  /* eslint-disable react-hooks/set-state-in-effect -- Intentional: responding to route change */
   useEffect(() => {
     setIsCollapsed(true)
     clearAutoCollapseTimer()
   }, [pathname, clearAutoCollapseTimer])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Cleanup timer on unmount
   useEffect(() => {

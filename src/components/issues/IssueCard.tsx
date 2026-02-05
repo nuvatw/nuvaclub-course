@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { StatusBadge, PriorityDot } from './StatusBadge'
@@ -11,7 +12,7 @@ interface IssueCardProps {
   index?: number
 }
 
-export function IssueCard({ issue, index = 0 }: IssueCardProps) {
+export const IssueCard = memo(function IssueCard({ issue, index = 0 }: IssueCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -51,4 +52,4 @@ export function IssueCard({ issue, index = 0 }: IssueCardProps) {
       </Link>
     </motion.div>
   )
-}
+})

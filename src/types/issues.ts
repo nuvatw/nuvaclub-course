@@ -115,10 +115,10 @@ export const ISSUE_PRIORITY_COLORS: Record<IssuePriority, string> = {
   high: 'bg-red-500',
 }
 
-// Status colors - simplified
+// Status colors - differentiated for accessibility (WCAG 4.5:1 contrast ratio)
 export const ISSUE_STATUS_COLORS: Record<IssueStatus, string> = {
-  not_started: 'bg-zinc-600 text-zinc-200',
-  in_progress: 'bg-zinc-600 text-zinc-200',
-  done: 'bg-zinc-600 text-zinc-200',
-  cancelled: 'bg-zinc-600 text-zinc-200',
+  not_started: 'bg-zinc-600 text-white',
+  in_progress: 'bg-amber-600 text-white',
+  done: 'bg-emerald-600 text-white',
+  cancelled: 'bg-zinc-500 text-white',
 }

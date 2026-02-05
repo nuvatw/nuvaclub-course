@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ToastProvider } from "@/components/ui/Toast";
 import { getUserData } from "@/lib/auth";
 import "./globals.css";
 
@@ -31,9 +32,11 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AppLayout user={user} profile={profile} isAdmin={isAdmin}>
-          {children}
-        </AppLayout>
+        <ToastProvider>
+          <AppLayout user={user} profile={profile} isAdmin={isAdmin}>
+            {children}
+          </AppLayout>
+        </ToastProvider>
       </body>
     </html>
   );

@@ -1,16 +1,18 @@
 'use client'
 
-import { useState, useCallback, useTransition } from 'react'
+import { useState, useCallback, useTransition, useOptimistic } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
+import { useToast } from '@/components/ui/Toast'
 import { StatusBadge, PrioritySelector } from './StatusBadge'
 import { ImageGallery } from './ImageGallery'
 import type { IssueWithDetails, IssueStatus, IssuePriority } from '@/types/issues'
 import { ISSUE_STATUS_LABELS } from '@/types/issues'
 import { updateIssueStatus, updateIssuePriority, deleteIssue, deleteIssueImage } from '@/app/actions/issues'
 import { formatDate } from '@/lib/utils'
+import { useFocusTrap } from '@/lib/useFocusTrap'
 
 interface IssueDetailProps {
   issue: IssueWithDetails
@@ -21,33 +23,57 @@ const STATUS_OPTIONS: IssueStatus[] = ['not_started', 'in_progress', 'done', 'ca
 
 export function IssueDetail({ issue, canEdit }: IssueDetailProps) {
   const router = useRouter()
+  const { showToast } = useToast()
   const [isPending, startTransition] = useTransition()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
+
+  // Optimistic state for status
+  const [optimisticStatus, setOptimisticStatus] = useOptimistic(
+    issue.status,
+    (_, newStatus: IssueStatus) => newStatus
+  )
+
+  // Optimistic state for priority
+  const [optimisticPriority, setOptimisticPriority] = useOptimistic(
+    issue.priority,
+    (_, newPriority: IssuePriority) => newPriority
+  )
+
+  const deleteModalRef = useFocusTrap<HTMLDivElement>({
+    isOpen: showDeleteConfirm,
+    onClose: () => setShowDeleteConfirm(false),
+  })
 
   const handleStatusChange = useCallback(
     (newStatus: IssueStatus) => {
       setShowStatusDropdown(false)
       startTransition(async () => {
+        setOptimisticStatus(newStatus)
         const result = await updateIssueStatus(issue.id, { status: newStatus })
-        if (!result.success) {
-          alert(result.error || '更新狀態失敗')
+        if (result.success) {
+          showToast({ type: 'success', message: '狀態已更新' })
+        } else {
+          showToast({ type: 'error', message: result.error || '更新狀態失敗' })
         }
       })
     },
-    [issue.id]
+    [issue.id, showToast, setOptimisticStatus]
   )
 
   const handlePriorityChange = useCallback(
     (newPriority: IssuePriority) => {
       startTransition(async () => {
+        setOptimisticPriority(newPriority)
         const result = await updateIssuePriority(issue.id, { priority: newPriority })
-        if (!result.success) {
-          alert(result.error || '更新優先度失敗')
+        if (result.success) {
+          showToast({ type: 'success', message: '優先度已更新' })
+        } else {
+          showToast({ type: 'error', message: result.error || '更新優先度失敗' })
         }
       })
     },
-    [issue.id]
+    [issue.id, showToast, setOptimisticPriority]
   )
 
   const handleDelete = useCallback(() => {
@@ -56,20 +82,20 @@ export function IssueDetail({ issue, canEdit }: IssueDetailProps) {
       if (result.success) {
         router.push('/issues')
       } else {
-        alert(result.error || '刪除失敗')
+        showToast({ type: 'error', message: result.error || '刪除失敗' })
         setShowDeleteConfirm(false)
       }
     })
-  }, [issue.id, router])
+  }, [issue.id, router, showToast])
 
   const handleImageDelete = useCallback(
     async (imageId: string) => {
       const result = await deleteIssueImage(issue.id, imageId)
       if (!result.success) {
-        alert(result.error || '刪除圖片失敗')
+        showToast({ type: 'error', message: result.error || '刪除圖片失敗' })
       }
     },
-    [issue.id]
+    [issue.id, showToast]
   )
 
   return (
@@ -131,8 +157,11 @@ export function IssueDetail({ issue, canEdit }: IssueDetailProps) {
             onClick={() => setShowStatusDropdown(!showStatusDropdown)}
             className="flex items-center gap-1.5"
             disabled={isPending}
+            aria-label="變更狀態"
+            aria-expanded={showStatusDropdown}
+            aria-haspopup="listbox"
           >
-            <StatusBadge status={issue.status} />
+            <StatusBadge status={optimisticStatus} />
             <svg
               className={`w-4 h-4 text-zinc-400 transition-transform ${showStatusDropdown ? 'rotate-180' : ''}`}
               fill="none"
@@ -146,14 +175,20 @@ export function IssueDetail({ issue, canEdit }: IssueDetailProps) {
           {showStatusDropdown && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setShowStatusDropdown(false)} />
-              <div className="absolute left-0 top-full z-20 mt-1 w-36 rounded-lg border border-zinc-700 bg-zinc-800 py-1 shadow-lg">
+              <div
+                role="listbox"
+                aria-label="狀態選項"
+                className="absolute left-0 top-full z-20 mt-1 w-36 rounded-lg border border-zinc-700 bg-zinc-800 py-1 shadow-lg"
+              >
                 {STATUS_OPTIONS.map((status) => (
                   <button
                     key={status}
                     type="button"
+                    role="option"
+                    aria-selected={status === optimisticStatus}
                     onClick={() => handleStatusChange(status)}
                     className={`w-full px-3 py-2 text-left text-sm hover:bg-zinc-700 ${
-                      status === issue.status ? 'bg-zinc-700 text-primary' : 'text-foreground'
+                      status === optimisticStatus ? 'bg-zinc-700 text-primary' : 'text-foreground'
                     }`}
                   >
                     {ISSUE_STATUS_LABELS[status].zh}
@@ -168,7 +203,7 @@ export function IssueDetail({ issue, canEdit }: IssueDetailProps) {
 
         {/* Priority Selector */}
         <PrioritySelector
-          priority={issue.priority}
+          priority={optimisticPriority}
           onChange={handlePriorityChange}
           disabled={isPending}
         />
@@ -260,13 +295,19 @@ export function IssueDetail({ issue, canEdit }: IssueDetailProps) {
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-modal-title"
+        >
           <motion.div
+            ref={deleteModalRef}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             className="w-full max-w-md rounded-lg border border-zinc-700 bg-zinc-900 p-6"
           >
-            <h3 className="text-lg font-semibold text-foreground">確定要刪除這個問題？</h3>
+            <h3 id="delete-modal-title" className="text-lg font-semibold text-foreground">確定要刪除這個問題？</h3>
             <p className="mt-2 text-sm text-zinc-400">
               此操作無法復原。所有相關的圖片也會被一併刪除。
             </p>

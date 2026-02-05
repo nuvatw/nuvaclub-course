@@ -39,12 +39,16 @@ export function Sidebar({ user, profile, isAdmin }: SidebarProps) {
   }, [])
 
   // Close menus when sidebar collapses
+  // Note: setState in effect is intentional here - menus should close
+  // when sidebar collapses to prevent UI issues with floating menus
+  /* eslint-disable react-hooks/set-state-in-effect -- Intentional: responding to collapse state */
   useEffect(() => {
     if (isCollapsed) {
       setCreateMenuOpen(false)
       setUserMenuOpen(false)
     }
   }, [isCollapsed])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -129,6 +133,9 @@ export function Sidebar({ user, profile, isAdmin }: SidebarProps) {
             <Tooltip content="新增" side="right" disabled={!isCollapsed}>
               <button
                 onClick={() => setCreateMenuOpen(!createMenuOpen)}
+                aria-label="新增"
+                aria-expanded={createMenuOpen}
+                aria-haspopup="menu"
                 className="w-10 h-10 flex items-center justify-center bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -139,6 +146,8 @@ export function Sidebar({ user, profile, isAdmin }: SidebarProps) {
           ) : (
             <button
               onClick={() => setCreateMenuOpen(!createMenuOpen)}
+              aria-expanded={createMenuOpen}
+              aria-haspopup="menu"
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors font-medium"
             >
               <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -155,6 +164,8 @@ export function Sidebar({ user, profile, isAdmin }: SidebarProps) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.15 }}
+                role="menu"
+                aria-label="新增選單"
                 className={`absolute top-full mt-2 bg-zinc-800 border border-border rounded-lg shadow-lg overflow-hidden z-50 ${
                   isCollapsed ? 'left-0 w-48' : 'left-0 right-0'
                 }`}
@@ -163,6 +174,7 @@ export function Sidebar({ user, profile, isAdmin }: SidebarProps) {
                   <Link
                     href="/projects/new"
                     onClick={() => setCreateMenuOpen(false)}
+                    role="menuitem"
                     className="flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-zinc-700 transition-colors"
                   >
                     <svg className="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -174,6 +186,7 @@ export function Sidebar({ user, profile, isAdmin }: SidebarProps) {
                 <Link
                   href="/issues/new"
                   onClick={() => setCreateMenuOpen(false)}
+                  role="menuitem"
                   className="flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-zinc-700 transition-colors"
                 >
                   <svg className="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -230,6 +243,9 @@ export function Sidebar({ user, profile, isAdmin }: SidebarProps) {
             <Tooltip content={displayName} side="right" disabled={!isCollapsed}>
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
+                aria-label="使用者選單"
+                aria-expanded={userMenuOpen}
+                aria-haspopup="menu"
                 className="w-10 h-10 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold hover:bg-primary/30 transition-colors"
               >
                 {initials}
@@ -238,6 +254,8 @@ export function Sidebar({ user, profile, isAdmin }: SidebarProps) {
           ) : (
             <button
               onClick={() => setUserMenuOpen(!userMenuOpen)}
+              aria-expanded={userMenuOpen}
+              aria-haspopup="menu"
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-zinc-800 transition-colors"
             >
               <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold flex-shrink-0">
@@ -269,12 +287,15 @@ export function Sidebar({ user, profile, isAdmin }: SidebarProps) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
                 transition={{ duration: 0.15 }}
+                role="menu"
+                aria-label="使用者選單"
                 className={`absolute bottom-full mb-2 bg-zinc-800 border border-border rounded-lg shadow-lg overflow-hidden z-50 ${
                   isCollapsed ? 'left-0 w-48' : 'left-0 right-0'
                 }`}
               >
                 <button
                   onClick={handleSignOut}
+                  role="menuitem"
                   className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-zinc-700 transition-colors"
                 >
                   <svg className="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

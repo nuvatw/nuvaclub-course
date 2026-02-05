@@ -147,6 +147,7 @@ export function LinkCard({ link, projectId, isAdmin }: LinkCardProps) {
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsEditModalOpen(true)}
+                aria-label="編輯連結"
                 className="px-2"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -158,6 +159,7 @@ export function LinkCard({ link, projectId, isAdmin }: LinkCardProps) {
                 size="sm"
                 onClick={handleDelete}
                 disabled={isPending}
+                aria-label="刪除連結"
                 className="px-2 text-red-400 hover:text-red-300 hover:bg-red-500/10"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

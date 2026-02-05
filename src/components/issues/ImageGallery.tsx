@@ -1,7 +1,10 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Button } from '@/components/ui/Button'
+import { useFocusTrap } from '@/lib/useFocusTrap'
 import type { IssueImage } from '@/types/issues'
 
 interface ImageGalleryProps {
@@ -13,35 +16,40 @@ interface ImageGalleryProps {
 export function ImageGallery({ images, canDelete = false, onDelete }: ImageGalleryProps) {
   const [selectedImage, setSelectedImage] = useState<IssueImage | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
-  // Handle ESC key to close lightbox
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && selectedImage) {
-        setSelectedImage(null)
-      }
-    }
+  // Focus trap for lightbox
+  const lightboxRef = useFocusTrap<HTMLDivElement>({
+    isOpen: selectedImage !== null,
+    onClose: () => setSelectedImage(null),
+  })
 
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [selectedImage])
+  // Focus trap for delete confirmation modal
+  const deleteModalRef = useFocusTrap<HTMLDivElement>({
+    isOpen: deleteConfirmId !== null,
+    onClose: () => setDeleteConfirmId(null),
+  })
 
-  const handleDelete = useCallback(
-    async (e: React.MouseEvent, imageId: string) => {
+  const handleDeleteClick = useCallback(
+    (e: React.MouseEvent, imageId: string) => {
       e.stopPropagation()
       if (!onDelete || deleting) return
-
-      if (!confirm('確定要刪除這張圖片嗎？')) return
-
-      setDeleting(imageId)
-      try {
-        await onDelete(imageId)
-      } finally {
-        setDeleting(null)
-      }
+      setDeleteConfirmId(imageId)
     },
     [onDelete, deleting]
   )
+
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!deleteConfirmId || !onDelete) return
+
+    setDeleting(deleteConfirmId)
+    setDeleteConfirmId(null)
+    try {
+      await onDelete(deleteConfirmId)
+    } finally {
+      setDeleting(null)
+    }
+  }, [deleteConfirmId, onDelete])
 
   if (images.length === 0) {
     return (
@@ -76,10 +84,13 @@ export function ImageGallery({ images, canDelete = false, onDelete }: ImageGalle
             className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg bg-zinc-800"
             onClick={() => setSelectedImage(image)}
           >
-            <img
+            <Image
               src={image.url || ''}
               alt={image.filename}
-              className="h-full w-full object-cover transition-transform group-hover:scale-105"
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+              className="object-cover transition-transform group-hover:scale-105"
+              unoptimized
             />
 
             {/* Hover overlay */}
@@ -95,8 +106,9 @@ export function ImageGallery({ images, canDelete = false, onDelete }: ImageGalle
             {canDelete && onDelete && (
               <button
                 type="button"
-                onClick={(e) => handleDelete(e, image.id)}
+                onClick={(e) => handleDeleteClick(e, image.id)}
                 disabled={deleting === image.id}
+                aria-label="刪除圖片"
                 className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 text-white opacity-0 transition-opacity hover:bg-red-600 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {deleting === image.id ? (
@@ -130,7 +142,10 @@ export function ImageGallery({ images, canDelete = false, onDelete }: ImageGalle
             )}
 
             {/* Expand icon */}
-            <div className="absolute right-2 bottom-2 rounded-full bg-black/60 p-1.5 text-white opacity-0 transition-opacity group-hover:opacity-100">
+            <div
+              className="absolute right-2 bottom-2 rounded-full bg-black/60 p-1.5 text-white opacity-0 transition-opacity group-hover:opacity-100"
+              aria-hidden="true"
+            >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   strokeLinecap="round"
@@ -148,9 +163,13 @@ export function ImageGallery({ images, canDelete = false, onDelete }: ImageGalle
       <AnimatePresence>
         {selectedImage && (
           <motion.div
+            ref={lightboxRef}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="圖片預覽"
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
             onClick={() => setSelectedImage(null)}
           >
@@ -158,6 +177,7 @@ export function ImageGallery({ images, canDelete = false, onDelete }: ImageGalle
             <button
               type="button"
               onClick={() => setSelectedImage(null)}
+              aria-label="關閉"
               className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20"
             >
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -176,6 +196,7 @@ export function ImageGallery({ images, canDelete = false, onDelete }: ImageGalle
                     const prevIndex = currentIndex === 0 ? images.length - 1 : currentIndex - 1
                     setSelectedImage(images[prevIndex])
                   }}
+                  aria-label="上一張圖片"
                   className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white transition-colors hover:bg-white/20"
                 >
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -190,6 +211,7 @@ export function ImageGallery({ images, canDelete = false, onDelete }: ImageGalle
                     const nextIndex = currentIndex === images.length - 1 ? 0 : currentIndex + 1
                     setSelectedImage(images[nextIndex])
                   }}
+                  aria-label="下一張圖片"
                   className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white transition-colors hover:bg-white/20"
                 >
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -200,16 +222,24 @@ export function ImageGallery({ images, canDelete = false, onDelete }: ImageGalle
             )}
 
             {/* Image */}
-            <motion.img
+            <motion.div
               key={selectedImage.id}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              src={selectedImage.url || ''}
-              alt={selectedImage.filename}
-              className="max-h-[85vh] max-w-[90vw] rounded-lg object-contain"
+              className="relative max-h-[85vh] max-w-[90vw]"
               onClick={(e) => e.stopPropagation()}
-            />
+            >
+              <Image
+                src={selectedImage.url || ''}
+                alt={selectedImage.filename}
+                width={1200}
+                height={800}
+                className="max-h-[85vh] max-w-[90vw] rounded-lg object-contain"
+                style={{ width: 'auto', height: 'auto' }}
+                unoptimized
+              />
+            </motion.div>
 
             {/* Image info */}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-lg bg-black/60 px-4 py-2 text-center">
@@ -218,6 +248,52 @@ export function ImageGallery({ images, canDelete = false, onDelete }: ImageGalle
                 {formatFileSize(selectedImage.size)} • {images.findIndex((img) => img.id === selectedImage.id) + 1} / {images.length}
               </p>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteConfirmId && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-image-modal-title"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+            onClick={() => setDeleteConfirmId(null)}
+          >
+            <motion.div
+              ref={deleteModalRef}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-sm rounded-lg border border-zinc-700 bg-zinc-900 p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 id="delete-image-modal-title" className="text-lg font-semibold text-foreground">確定要刪除這張圖片嗎？</h3>
+              <p className="mt-2 text-sm text-zinc-400">
+                此操作無法復原。
+              </p>
+              <div className="mt-6 flex justify-end gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDeleteConfirmId(null)}
+                >
+                  取消
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={handleDeleteConfirm}
+                >
+                  確定刪除
+                </Button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

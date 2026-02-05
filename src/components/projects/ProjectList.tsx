@@ -43,7 +43,6 @@ export function ProjectList({ projects }: ProjectListProps) {
           id={project.id}
           title={project.title}
           description={project.description}
-          currentStepIndex={project.current_step_index}
           steps={project.project_steps}
           index={index}
         />
