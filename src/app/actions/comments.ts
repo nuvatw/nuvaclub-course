@@ -3,6 +3,21 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
+/**
+ * Retrieves all comments for a specific project
+ *
+ * Comments are only visible to authenticated users.
+ * Results are ordered by creation date (newest first).
+ *
+ * @param projectId - The UUID of the project to get comments for
+ * @returns Array of comments, or empty array if not authenticated or on error
+ *
+ * @example
+ * const comments = await getComments('project-uuid')
+ * comments.forEach(comment => {
+ *   console.log(`${comment.author_name}: ${comment.body}`)
+ * })
+ */
 export async function getComments(projectId: string) {
   const supabase = await createClient()
   if (!supabase) return []
@@ -27,6 +42,24 @@ export async function getComments(projectId: string) {
   return comments
 }
 
+/**
+ * Creates a new comment on a project
+ *
+ * Requires the user to have completed onboarding. The author's name
+ * is automatically populated from their profile.
+ *
+ * @param formData - Form data containing comment details
+ * @param formData.projectId - The project UUID to comment on (required)
+ * @param formData.body - The comment text (required)
+ * @throws Error if not authenticated, onboarding incomplete, or creation fails
+ *
+ * @example
+ * <form action={createComment}>
+ *   <input type="hidden" name="projectId" value={project.id} />
+ *   <textarea name="body" required />
+ *   <button type="submit">Add Comment</button>
+ * </form>
+ */
 export async function createComment(formData: FormData) {
   const supabase = await createClient()
   if (!supabase) throw new Error('Database not configured')
@@ -68,6 +101,21 @@ export async function createComment(formData: FormData) {
   revalidatePath(`/projects/${projectId}`)
 }
 
+/**
+ * Deletes a comment from a project
+ *
+ * Only the comment author or an admin can delete a comment.
+ *
+ * @param commentId - The UUID of the comment to delete
+ * @param projectId - The UUID of the parent project (for path revalidation)
+ * @returns Object with success status and optional error message (in Chinese)
+ *
+ * @example
+ * const result = await deleteComment('comment-uuid', 'project-uuid')
+ * if (!result.success) {
+ *   showToast({ type: 'error', message: result.error })
+ * }
+ */
 export async function deleteComment(commentId: string, projectId: string) {
   const supabase = await createClient()
   if (!supabase) {
@@ -113,6 +161,21 @@ export async function deleteComment(commentId: string, projectId: string) {
   return { success: true }
 }
 
+/**
+ * Checks if the current user has permission to delete a specific comment
+ *
+ * Returns true if the user is the comment author or an admin.
+ * Safe to call without authentication - returns false on any error.
+ *
+ * @param commentId - The UUID of the comment to check
+ * @returns True if user can delete, false otherwise
+ *
+ * @example
+ * const canDelete = await canDeleteComment('comment-uuid')
+ * if (canDelete) {
+ *   showDeleteButton()
+ * }
+ */
 export async function canDeleteComment(commentId: string): Promise<boolean> {
   const supabase = await createClient()
   if (!supabase) return false

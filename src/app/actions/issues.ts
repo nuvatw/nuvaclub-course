@@ -27,6 +27,11 @@ import { sanitizeSearchInput } from '@/lib/sanitize'
 // Helper Functions
 // ============================================
 
+/**
+ * Retrieves the current authenticated user's ID
+ * @returns The user's UUID
+ * @throws Error if database is not configured or user is not authenticated
+ */
 async function getCurrentUserId(): Promise<string> {
   const supabase = await createClient()
   if (!supabase) {
@@ -45,6 +50,10 @@ async function getCurrentUserId(): Promise<string> {
   return user.id
 }
 
+/**
+ * Checks if the current authenticated user has admin privileges
+ * @returns True if the user is an admin, false otherwise (including on error)
+ */
 async function isAdmin(): Promise<boolean> {
   const supabase = await createClient()
   if (!supabase) return false
@@ -62,7 +71,28 @@ async function isAdmin(): Promise<boolean> {
 // ============================================
 
 /**
- * Create a new issue (simplified)
+ * Creates a new issue in the system
+ *
+ * @param input - The issue data to create
+ * @param input.title - Issue title (required)
+ * @param input.priority - Priority level: 'low', 'medium', or 'high'
+ * @param input.why_background - Background context for the issue
+ * @param input.current_behavior - Description of current behavior
+ * @param input.expected_behavior - Description of expected behavior
+ * @param input.acceptance_criteria - Criteria for issue completion
+ * @param input.image_ids - Array of pre-uploaded image IDs to attach
+ * @returns Object with success status, issue ID on success, or error message on failure
+ *
+ * @example
+ * const result = await createIssue({
+ *   title: 'Login button not working',
+ *   priority: 'high',
+ *   current_behavior: 'Button does nothing when clicked',
+ *   expected_behavior: 'Should navigate to login page',
+ * })
+ * if (result.success) {
+ *   console.log('Created issue:', result.issueId)
+ * }
  */
 export async function createIssue(input: CreateIssueInput): Promise<{ success: boolean; issueId?: string; error?: string }> {
   try {
@@ -120,7 +150,24 @@ export async function createIssue(input: CreateIssueInput): Promise<{ success: b
 }
 
 /**
- * Get paginated list of issues with filters (simplified)
+ * Retrieves a paginated list of issues with optional filtering
+ *
+ * @param filters - Optional filter and pagination parameters
+ * @param filters.page - Page number (default: 1)
+ * @param filters.limit - Items per page (default: 20)
+ * @param filters.status - Filter by status: 'all', 'not_started', 'in_progress', 'done', 'cancelled'
+ * @param filters.priority - Filter by priority: 'all', 'low', 'medium', 'high'
+ * @param filters.search - Search term to filter by title (case-insensitive)
+ * @param filters.created_by - Filter by creator's user ID
+ * @returns Paginated response with issues array and metadata
+ *
+ * @example
+ * // Get high priority issues on page 2
+ * const result = await getIssues({
+ *   page: 2,
+ *   priority: 'high',
+ *   status: 'in_progress',
+ * })
  */
 export async function getIssues(filters?: IssueFiltersInput): Promise<PaginatedIssues> {
   const supabase = await createClient()
@@ -182,7 +229,16 @@ export async function getIssues(filters?: IssueFiltersInput): Promise<PaginatedI
 }
 
 /**
- * Get a single issue by ID with all details
+ * Retrieves a single issue by ID with all related details including images
+ *
+ * @param id - The UUID of the issue to retrieve
+ * @returns The issue with creator and images, or null if not found
+ *
+ * @example
+ * const issue = await getIssueById('123e4567-e89b-12d3-a456-426614174000')
+ * if (issue) {
+ *   console.log(issue.title, issue.images.length)
+ * }
  */
 export async function getIssueById(id: string): Promise<IssueWithDetails | null> {
   const supabase = await createClient()
@@ -240,7 +296,22 @@ export async function getIssueById(id: string): Promise<IssueWithDetails | null>
 }
 
 /**
- * Update an issue
+ * Updates an existing issue
+ *
+ * Only the issue creator or an admin can update an issue.
+ * All fields are optional - only provided fields will be updated.
+ *
+ * @param id - The UUID of the issue to update
+ * @param input - The fields to update (all optional)
+ * @returns Object with success status and optional error message
+ * @throws Returns error if user lacks permission or issue not found
+ *
+ * @example
+ * const result = await updateIssue('issue-uuid', {
+ *   title: 'Updated title',
+ *   status: 'in_progress',
+ *   image_ids: ['new-image-id'], // Attach new images
+ * })
  */
 export async function updateIssue(
   id: string,
@@ -314,7 +385,18 @@ export async function updateIssue(
 }
 
 /**
- * Update issue status
+ * Updates only the status of an issue
+ *
+ * Any authenticated user can update issue status (no ownership check).
+ * This is a lightweight operation for quick status changes.
+ *
+ * @param id - The UUID of the issue to update
+ * @param input - Object containing the new status
+ * @param input.status - New status: 'not_started', 'in_progress', 'done', 'cancelled'
+ * @returns Object with success status and optional error message
+ *
+ * @example
+ * await updateIssueStatus('issue-uuid', { status: 'done' })
  */
 export async function updateIssueStatus(
   id: string,
@@ -350,7 +432,18 @@ export async function updateIssueStatus(
 }
 
 /**
- * Update issue priority
+ * Updates only the priority of an issue
+ *
+ * Any authenticated user can update issue priority (no ownership check).
+ * This is a lightweight operation for quick priority changes.
+ *
+ * @param id - The UUID of the issue to update
+ * @param input - Object containing the new priority
+ * @param input.priority - New priority: 'low', 'medium', 'high'
+ * @returns Object with success status and optional error message
+ *
+ * @example
+ * await updateIssuePriority('issue-uuid', { priority: 'high' })
  */
 export async function updateIssuePriority(
   id: string,
@@ -386,7 +479,20 @@ export async function updateIssuePriority(
 }
 
 /**
- * Delete an issue
+ * Deletes an issue and all associated images
+ *
+ * Only the issue creator or an admin can delete an issue.
+ * This operation also removes all associated images from R2 storage.
+ *
+ * @param id - The UUID of the issue to delete
+ * @returns Object with success status and optional error message
+ * @throws Returns error if user lacks permission or issue not found
+ *
+ * @example
+ * const result = await deleteIssue('issue-uuid')
+ * if (result.success) {
+ *   redirect('/issues')
+ * }
  */
 export async function deleteIssue(id: string): Promise<{ success: boolean; error?: string }> {
   try {
@@ -443,7 +549,21 @@ export async function deleteIssue(id: string): Promise<{ success: boolean; error
 }
 
 /**
- * Delete an image from an issue
+ * Deletes a single image from an issue
+ *
+ * Permission is granted to: the image uploader, the issue creator, or an admin.
+ * The image is removed from both the database and R2 storage.
+ *
+ * @param issueId - The UUID of the parent issue (used for path revalidation)
+ * @param imageId - The UUID of the image to delete
+ * @returns Object with success status and optional error message
+ * @throws Returns error if user lacks permission or image not found
+ *
+ * @example
+ * const result = await deleteIssueImage('issue-uuid', 'image-uuid')
+ * if (!result.success) {
+ *   showToast({ type: 'error', message: result.error })
+ * }
  */
 export async function deleteIssueImage(
   issueId: string,
@@ -507,7 +627,19 @@ export async function deleteIssueImage(
 }
 
 /**
- * Check if current user can edit an issue
+ * Checks if the current user has permission to edit a specific issue
+ *
+ * Returns true if the user is the issue creator or an admin.
+ * Safe to call without authentication - returns false on any error.
+ *
+ * @param issueId - The UUID of the issue to check
+ * @returns True if user can edit, false otherwise
+ *
+ * @example
+ * const canEdit = await canEditIssue('issue-uuid')
+ * if (canEdit) {
+ *   showEditButton()
+ * }
  */
 export async function canEditIssue(issueId: string): Promise<boolean> {
   try {

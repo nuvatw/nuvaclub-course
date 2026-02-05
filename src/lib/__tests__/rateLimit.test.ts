@@ -125,8 +125,8 @@ describe('checkRateLimit', () => {
     const config = { limit: 1, windowMs: 60000 }
     const identifier = 'user-blocked-reset'
 
-    // Make one request
-    const firstResult = checkRateLimit(identifier, 'test-endpoint', config)
+    // Make one request to consume the limit
+    checkRateLimit(identifier, 'test-endpoint', config)
     const firstTimestamp = Date.now()
 
     // Advance time slightly

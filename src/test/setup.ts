@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest'
 import { vi } from 'vitest'
+import React from 'react'
 
 // Mock Next.js navigation
 vi.mock('next/navigation', () => ({
@@ -21,20 +22,19 @@ vi.mock('next/navigation', () => ({
 // Mock Next.js Link component
 vi.mock('next/link', () => ({
   default: ({ children, href, ...props }: { children: React.ReactNode; href: string }) => {
-    const React = require('react')
     return React.createElement('a', { href, ...props }, children)
   },
 }))
 
 // Mock Next.js Image component
 vi.mock('next/image', () => ({
-  default: (props: { src: string; alt: string; [key: string]: unknown }) => {
-    const React = require('react')
-    // eslint-disable-next-line @next/next/no-img-element
+  default: (props: { src: string | { src: string }; alt: string; [key: string]: unknown }) => {
+    const { src, alt, ...restProps } = props
+    const resolvedSrc = typeof src === 'object' ? src.src : src
     return React.createElement('img', {
-      src: typeof props.src === 'object' ? (props.src as { src: string }).src : props.src,
-      alt: props.alt,
-      ...props,
+      ...restProps,
+      src: resolvedSrc,
+      alt,
     })
   },
 }))
@@ -60,11 +60,6 @@ class MockIntersectionObserver implements IntersectionObserver {
   readonly rootMargin: string = ''
   readonly thresholds: ReadonlyArray<number> = []
 
-  constructor(
-    _callback: IntersectionObserverCallback,
-    _options?: IntersectionObserverInit
-  ) {}
-
   observe(): void {}
   unobserve(): void {}
   disconnect(): void {}
@@ -77,7 +72,6 @@ global.IntersectionObserver = MockIntersectionObserver
 
 // Mock ResizeObserver
 class MockResizeObserver implements ResizeObserver {
-  constructor(_callback: ResizeObserverCallback) {}
   observe(): void {}
   unobserve(): void {}
   disconnect(): void {}

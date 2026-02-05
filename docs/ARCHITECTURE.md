@@ -1,276 +1,407 @@
-# Internal Issue Ticket System - Architecture Overview
+# nuvaClub Course Production Tracker - Architecture Overview
 
 ## System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              CLIENT (Next.js)                                │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │
-│  │  Issue List  │  │ Create Issue │  │ Issue Detail │  │  Edit Issue  │    │
-│  │  /issues     │  │ /issues/new  │  │ /issues/[id] │  │/issues/[id]/ │    │
-│  │              │  │              │  │              │  │    edit      │    │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘    │
-│         │                 │                 │                 │            │
-│         └─────────────────┴────────┬────────┴─────────────────┘            │
-│                                    │                                        │
-│  ┌─────────────────────────────────▼────────────────────────────────────┐  │
-│  │                     Server Actions (src/app/actions/issues.ts)       │  │
-│  │  - createIssue()     - getIssues()      - getIssueById()            │  │
-│  │  - updateIssue()     - deleteIssue()    - updateIssueStatus()       │  │
-│  └─────────────────────────────────┬────────────────────────────────────┘  │
-└────────────────────────────────────┼────────────────────────────────────────┘
-                                     │
-┌────────────────────────────────────┼────────────────────────────────────────┐
-│                              API ROUTES                                      │
-│  ┌─────────────────────────────────▼────────────────────────────────────┐  │
-│  │                Image Upload API (src/app/api/issues/...)              │  │
-│  │  - POST /api/issues/images/presign  → Generate presigned URL          │  │
-│  │  - POST /api/issues/images/confirm  → Confirm upload completion       │  │
-│  │  - DELETE /api/issues/images/[id]   → Delete image from R2            │  │
-│  └─────────────────────────────────┬────────────────────────────────────┘  │
-└────────────────────────────────────┼────────────────────────────────────────┘
-                                     │
-         ┌───────────────────────────┼───────────────────────────┐
-         │                           │                           │
-         ▼                           ▼                           ▼
-┌─────────────────┐      ┌─────────────────┐      ┌─────────────────────────┐
-│    Supabase     │      │ Cloudflare R2   │      │  Supabase Auth          │
-│    PostgreSQL   │      │ (Image Storage) │      │  (Google OAuth)         │
-├─────────────────┤      ├─────────────────┤      ├─────────────────────────┤
-│ - issues        │      │ - Bucket:       │      │ - Session management    │
-│ - issue_images  │      │   nuvaclub-     │      │ - Domain restriction    │
-│ - profiles      │      │   issues        │      │   via env variable      │
-│ - app_admins    │      │ - Presigned PUT │      │ - Admin whitelist       │
-└─────────────────┘      └─────────────────┘      └─────────────────────────┘
++---------------------------------------------------------------------------+
+|                              CLIENT (Next.js 16)                           |
++---------------------------------------------------------------------------+
+|                                                                            |
+|  +------------------+  +------------------+  +------------------+          |
+|  |   Projects       |  |     Issues       |  |   Onboarding     |          |
+|  |   /projects/*    |  |    /issues/*     |  |   /onboarding    |          |
+|  +------------------+  +------------------+  +------------------+          |
+|                                                                            |
+|  +----------------------------------------------------------------------+ |
+|  |                      Shared Components                                | |
+|  |  +------------+  +------------+  +------------+  +--------------+     | |
+|  |  |   Toast    |  |   Modal    |  |  Sidebar   |  | ErrorBoundary|     | |
+|  |  +------------+  +------------+  +------------+  +--------------+     | |
+|  +----------------------------------------------------------------------+ |
+|                                                                            |
+|  +----------------------------------------------------------------------+ |
+|  |                      Server Actions                                   | |
+|  |  - issues.ts    - projects.ts    - comments.ts    - auth.ts           | |
+|  +----------------------------------------------------------------------+ |
+|                                                                            |
+|  +----------------------------------------------------------------------+ |
+|  |                      Custom Hooks (Realtime)                          | |
+|  |  - useRealtimeIssue  - useRealtimeSteps  - useRealtimeComments        | |
+|  +----------------------------------------------------------------------+ |
+|                                                                            |
++---------------------------------------------------------------------------+
+                                    |
+         +--------------------------+---------------------------+
+         |                          |                           |
+         v                          v                           v
++------------------+    +--------------------+    +------------------------+
+|    Supabase      |    |   Cloudflare R2    |    |    Supabase Auth       |
+|    PostgreSQL    |    |  (Image Storage)   |    |   (Google OAuth)       |
++------------------+    +--------------------+    +------------------------+
+| - profiles       |    | - Bucket:          |    | - Session management   |
+| - projects       |    |   nuvaclub-issues  |    | - Domain restriction   |
+| - project_steps  |    | - Presigned URLs   |    | - Admin whitelist      |
+| - step_links     |    | - Direct upload    |    +------------------------+
+| - project_comments|   +--------------------+
+| - issues         |
+| - issue_images   |
+| - app_admins     |
+| - step_time_avgs |
++------------------+
 ```
+
+## Technology Stack
+
+| Component | Technology | Version |
+|-----------|------------|---------|
+| Framework | Next.js (App Router) | 16.1.6 |
+| Runtime | React | 19.2.3 |
+| Language | TypeScript | ^5 |
+| Styling | Tailwind CSS | ^4 |
+| Animation | Framer Motion | ^12.31.0 |
+| Database | Supabase (PostgreSQL) | - |
+| Auth | Supabase Auth (Google OAuth) | - |
+| File Storage | Cloudflare R2 | - |
+| Validation | Zod | ^4.3.6 |
+| Testing | Vitest + React Testing Library | ^4.0.18 |
+
+## Directory Structure
+
+```
+src/
++-- app/                          # Next.js App Router pages
+|   +-- actions/                  # Server Actions
+|   |   +-- auth.ts               # Authentication actions
+|   |   +-- comments.ts           # Comment CRUD
+|   |   +-- issues.ts             # Issue CRUD
+|   |   +-- projects.ts           # Project CRUD
+|   +-- api/                      # API Routes
+|   |   +-- issues/images/        # Image upload endpoints
+|   +-- auth/callback/            # OAuth callback
+|   +-- issues/                   # Issue pages
+|   |   +-- [id]/                 # Issue detail & edit
+|   |   +-- new/                  # New issue
+|   +-- onboarding/               # User onboarding
+|   +-- projects/                 # Project pages
+|   |   +-- [id]/                 # Project detail
+|   |   +-- new/                  # New project
+|   +-- layout.tsx                # Root layout with providers
+|   +-- page.tsx                  # Homepage
+|   +-- loading.tsx               # Global loading state
+|
++-- components/
+|   +-- auth/                     # Auth components
+|   |   +-- AuthButton.tsx        # Sign in button
+|   |   +-- GuestButton.tsx       # Guest access
+|   +-- home/                     # Homepage components
+|   |   +-- HeroSection.tsx       # Landing hero
+|   +-- issues/                   # Issue components
+|   |   +-- IssueCard.tsx         # Issue list item
+|   |   +-- IssueDetail.tsx       # Issue detail view
+|   |   +-- IssueForm.tsx         # Create/edit form
+|   |   +-- IssueList.tsx         # Issue list container
+|   |   +-- ImageGallery.tsx      # Image viewer with lightbox
+|   |   +-- ImageUploader.tsx     # Drag-and-drop uploader
+|   |   +-- StatusBadge.tsx       # Status indicator
+|   +-- layout/                   # Layout components
+|   |   +-- AppLayout.tsx         # Main app wrapper
+|   |   +-- Header.tsx            # Top navigation
+|   |   +-- Sidebar.tsx           # Collapsible sidebar
+|   |   +-- SidebarContext.tsx    # Sidebar state management
+|   |   +-- Footer.tsx            # Page footer
+|   +-- projects/                 # Project components
+|   |   +-- ProjectCard.tsx       # Project list item
+|   |   +-- ProjectList.tsx       # Project list container
+|   |   +-- StepDetail.tsx        # Step detail panel
+|   |   +-- StepList.tsx          # Step list view
+|   |   +-- CommentWall.tsx       # Project comments
+|   |   +-- LinkCard.tsx          # Step link display
+|   |   +-- LinkModal.tsx         # Add/edit link modal
+|   |   +-- CompleteStepModal.tsx # Step completion dialog
+|   +-- ui/                       # Reusable UI components
+|   |   +-- Button.tsx            # Button variants
+|   |   +-- Card.tsx              # Card container
+|   |   +-- Input.tsx             # Form input
+|   |   +-- Modal.tsx             # Modal dialog
+|   |   +-- NavigationProgress.tsx # Page transition indicator
+|   |   +-- ProgressBar.tsx       # Progress indicator
+|   |   +-- RadioGroup.tsx        # Radio button group
+|   |   +-- Skeleton.tsx          # Loading placeholder
+|   |   +-- StepIndicator.tsx     # Step status icon
+|   |   +-- Toast.tsx             # Toast notification system
+|   |   +-- Tooltip.tsx           # Hover tooltip
+|   +-- ErrorBoundary.tsx         # Error boundary wrapper
+|
++-- lib/
+|   +-- supabase/                 # Supabase client setup
+|   |   +-- client.ts             # Browser client
+|   |   +-- server.ts             # Server client
+|   |   +-- middleware.ts         # Auth middleware
+|   +-- constants/
+|   |   +-- steps.ts              # 20-step production workflow
+|   +-- validations/
+|   |   +-- issue.ts              # Zod schemas for issues
+|   +-- __tests__/                # Unit tests
+|   +-- animations.ts             # Framer Motion presets
+|   +-- auth.ts                   # Auth utilities
+|   +-- env.ts                    # Environment validation
+|   +-- r2.ts                     # Cloudflare R2 client
+|   +-- rateLimit.ts              # Rate limiting utility
+|   +-- sanitize.ts               # Input sanitization
+|   +-- useFocusTrap.ts           # Focus trap hook
+|   +-- useRealtimeComments.ts    # Realtime comments hook
+|   +-- useRealtimeIssue.ts       # Realtime issue hook
+|   +-- useRealtimeSteps.ts       # Realtime steps hook
+|   +-- utils.ts                  # General utilities
+|
++-- types/
+|   +-- database.ts               # Database types
+|   +-- issues.ts                 # Issue-related types
+|
++-- middleware.ts                 # Next.js middleware (auth)
+```
+
+## Key Features
+
+### 1. Toast Notification System
+
+Location: `src/components/ui/Toast.tsx`
+
+The Toast system provides non-blocking user feedback:
+
+```tsx
+const { showToast } = useToast()
+
+showToast({
+  type: 'success',  // 'success' | 'error' | 'info'
+  message: 'Operation completed'
+})
+```
+
+Features:
+- Auto-dismiss after 4 seconds
+- Animated entrance/exit via Framer Motion
+- Stacks multiple toasts
+- Accessible with aria-live regions
+
+### 2. Error Boundary
+
+Location: `src/components/ErrorBoundary.tsx`
+
+Graceful error handling that prevents crashes from propagating:
+
+```tsx
+<ErrorBoundary fallback={<CustomError />}>
+  <ComponentThatMightError />
+</ErrorBoundary>
+```
+
+Features:
+- Catches React rendering errors
+- Displays user-friendly error message (Traditional Chinese)
+- Retry button to attempt recovery
+- Logs errors for debugging
+
+### 3. Realtime Subscriptions
+
+Hooks for live data updates via Supabase Realtime:
+
+| Hook | Purpose | Events |
+|------|---------|--------|
+| `useRealtimeIssue` | Single issue updates | UPDATE, DELETE |
+| `useRealtimeSteps` | Project step changes | UPDATE, INSERT, DELETE |
+| `useRealtimeComments` | Comment wall updates | INSERT, DELETE, UPDATE |
+
+```tsx
+const { issue, isConnected, error } = useRealtimeIssue(initialIssue, {
+  onDelete: () => router.push('/issues'),
+  onUpdate: (updated) => console.log('Updated:', updated),
+})
+```
+
+### 4. Focus Trap Hook
+
+Location: `src/lib/useFocusTrap.ts`
+
+Accessibility-compliant focus management for modals:
+
+```tsx
+const containerRef = useFocusTrap({
+  isOpen: modalOpen,
+  onClose: closeModal
+})
+
+return <div ref={containerRef}>{/* Modal content */}</div>
+```
+
+Features:
+- Traps Tab/Shift+Tab within modal
+- Handles Escape key to close
+- Restores focus on close
+- Auto-focuses first focusable element
+
+### 5. Rate Limiting
+
+Location: `src/lib/rateLimit.ts`
+
+In-memory rate limiter using sliding window algorithm:
+
+```tsx
+const result = checkRateLimit(userId, 'imagePresign', RATE_LIMIT_CONFIGS.imagePresign)
+
+if (!result.success) {
+  return NextResponse.json(createRateLimitResponse(result))
+}
+```
+
+Preset limits:
+- Image presign: 10/minute
+- Image confirm: 10/minute
+- Image delete: 20/minute
+
+### 6. Environment Validation
+
+Location: `src/lib/env.ts`
+
+Zod-based validation of environment variables at startup:
+
+```tsx
+import { env, isR2Configured, getR2Config } from '@/lib/env'
+
+// Typed access to validated env vars
+console.log(env.NEXT_PUBLIC_SUPABASE_URL)
+
+// Check if optional features are configured
+if (isR2Configured()) {
+  const r2 = getR2Config()
+}
+```
+
+### 7. Input Sanitization
+
+Location: `src/lib/sanitize.ts`
+
+Security utilities for user input:
+
+| Function | Purpose |
+|----------|---------|
+| `sanitizeSearchInput` | Escapes SQL LIKE patterns |
+| `escapeRegex` | Escapes regex special chars |
+| `sanitizeForDisplay` | XSS protection |
+| `removeControlCharacters` | Removes null bytes |
+| `sanitizeUserInput` | Comprehensive sanitization |
+| `sanitizeUUID` | Validates UUID format |
 
 ## Data Flow
 
-### 1. Issue Creation Flow
+### Issue Creation Flow
+
 ```
-User clicks "建立 Issue 單"
-         │
-         ▼
-┌─────────────────────────────────┐
-│  Navigate to /issues/new        │
-└─────────────────┬───────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────┐
-│  Fill form with:                │
-│  - Type (Bug/Feat/Chore)        │
-│  - Short description            │
-│  - Scope (Web/iOS/Android/etc)  │
-│  - Priority (Low/Medium/High)   │
-│  - Severity (Blocker/Critical/  │
-│              High/Low)          │
-│  - Background & Purpose         │
-│  - Current vs Expected behavior │
-│  - Acceptance Criteria          │
-└─────────────────┬───────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────┐
-│  Upload Images (optional)       │
-│  1. Select files                │
-│  2. Client validates type/size  │
-│  3. Request presigned URL       │
-│  4. Direct upload to R2         │
-│  5. Confirm upload to server    │
-└─────────────────┬───────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────┐
-│  Submit → createIssue()         │
-│  - Server validates all fields  │
-│  - Creates issue record         │
-│  - Links uploaded images        │
-│  - Returns issue ID             │
-└─────────────────┬───────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────┐
-│  Redirect to /issues/[id]       │
-└─────────────────────────────────┘
+User -> /issues/new
+         |
+         v
+    IssueForm.tsx
+         |
+    +----+----+
+    |         |
+    v         v
+ImageUploader   Form Submit
+    |              |
+    v              v
+/api/images/   createIssue()
+presign           |
+    |              v
+    v         Link images
+Direct to R2      |
+    |              v
+    v         Redirect to
+Confirm       /issues/[id]
 ```
 
-### 2. Image Upload Flow (Presigned URL Pattern)
+### Realtime Data Flow
+
 ```
-┌───────────┐         ┌───────────────┐         ┌─────────────────┐
-│  Client   │         │  API Server   │         │  Cloudflare R2  │
-└─────┬─────┘         └───────┬───────┘         └────────┬────────┘
-      │                       │                          │
-      │ POST /api/issues/     │                          │
-      │   images/presign      │                          │
-      │ {filename, contentType, size}                    │
-      │──────────────────────▶│                          │
-      │                       │                          │
-      │                       │ Generate presigned PUT URL
-      │                       │ with 15min expiry        │
-      │                       │                          │
-      │ {uploadUrl, objectKey,│                          │
-      │  imageId}             │                          │
-      │◀──────────────────────│                          │
-      │                       │                          │
-      │ PUT (direct upload)   │                          │
-      │ with file binary      │                          │
-      │─────────────────────────────────────────────────▶│
-      │                       │                          │
-      │ 200 OK                │                          │
-      │◀─────────────────────────────────────────────────│
-      │                       │                          │
-      │ POST /api/issues/     │                          │
-      │   images/confirm      │                          │
-      │ {imageId}             │                          │
-      │──────────────────────▶│                          │
-      │                       │ Mark image as uploaded   │
-      │                       │ in database              │
-      │ 200 OK                │                          │
-      │◀──────────────────────│                          │
+Database Change (UPDATE/INSERT/DELETE)
+         |
+         v
+Supabase Realtime Channel
+         |
+         v
+useRealtime* Hook
+         |
+         v
+Local State Update
+         |
+         v
+React Re-render
 ```
 
 ## Database Schema
 
-### Entity Relationship Diagram
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                          profiles                                │
-├─────────────────────────────────────────────────────────────────┤
-│ id: UUID (PK)                                                    │
-│ email: TEXT (UNIQUE)                                             │
-│ full_name: TEXT                                                  │
-│ role: 'admin' | 'member'                                         │
-│ onboarding_completed: BOOLEAN                                    │
-│ created_at: TIMESTAMP                                            │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              │ created_by (FK)
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                           issues                                 │
-├─────────────────────────────────────────────────────────────────┤
-│ id: UUID (PK)                                                    │
-│ title: TEXT (auto-generated)                                     │
-│ type: 'bug' | 'feat' | 'chore'                                  │
-│ short_description: TEXT                                          │
-│ scope: 'web' | 'ios' | 'android' | 'admin' | 'api' | 'other'    │
-│ priority: 'low' | 'medium' | 'high'                             │
-│ severity: 'blocker' | 'critical' | 'high' | 'low'               │
-│ status: 'not_started' | 'in_progress' | 'done' | 'cancelled'    │
-│ why_background: TEXT (markdown)                                  │
-│ current_behavior: TEXT (markdown)                                │
-│ expected_behavior: TEXT (markdown)                               │
-│ acceptance_criteria: TEXT (markdown)                             │
-│ created_by: UUID (FK → profiles.id)                             │
-│ created_at: TIMESTAMP                                            │
-│ updated_at: TIMESTAMP                                            │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              │ issue_id (FK)
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                        issue_images                              │
-├─────────────────────────────────────────────────────────────────┤
-│ id: UUID (PK)                                                    │
-│ issue_id: UUID (FK → issues.id, nullable for pending uploads)   │
-│ object_key: TEXT (R2 path)                                       │
-│ filename: TEXT (original filename)                               │
-│ content_type: TEXT (mime type)                                   │
-│ size: INTEGER (bytes)                                            │
-│ url: TEXT (public URL)                                           │
-│ uploaded: BOOLEAN (default false)                                │
-│ uploaded_by: UUID (FK → profiles.id)                            │
-│ created_at: TIMESTAMP                                            │
-└─────────────────────────────────────────────────────────────────┘
-```
+### Main Tables
 
-## Authentication & Authorization
+| Table | Purpose |
+|-------|---------|
+| `profiles` | User profiles linked to auth.users |
+| `app_admins` | Admin email whitelist |
+| `projects` | Course projects |
+| `project_steps` | 20 steps per project |
+| `step_links` | Links attached to steps |
+| `project_comments` | Comment wall per project |
+| `step_time_averages` | Historical time data |
+| `issues` | Issue tracking |
+| `issue_images` | Images attached to issues |
 
-### Auth Flow
-1. User signs in via Google OAuth (Supabase Auth)
-2. Middleware checks session on protected routes
-3. Email domain validation via `ALLOWED_EMAIL_DOMAINS` env var
-4. Admin status checked via `app_admins` table
+### Permission Model
 
-### Permission Matrix
-| Action | Any Member | Creator | Admin |
-|--------|-----------|---------|-------|
-| Create Issue | ✅ | - | ✅ |
-| View Issues | ✅ | ✅ | ✅ |
-| Edit Issue | ❌ | ✅ | ✅ |
-| Delete Issue | ❌ | ✅ | ✅ |
-| Change Status | ✅ | ✅ | ✅ |
-| Upload Images | ✅ | ✅ | ✅ |
-| Delete Images | ❌ | ✅ | ✅ |
-
-## File Structure
-```
-src/
-├── app/
-│   ├── actions/
-│   │   └── issues.ts              # Server actions for issues
-│   ├── api/
-│   │   └── issues/
-│   │       └── images/
-│   │           ├── presign/route.ts    # Generate presigned URL
-│   │           ├── confirm/route.ts    # Confirm upload
-│   │           └── [id]/route.ts       # Delete image
-│   └── issues/
-│       ├── page.tsx               # Issue list
-│       ├── new/
-│       │   └── page.tsx           # Create issue
-│       └── [id]/
-│           ├── page.tsx           # Issue detail
-│           └── edit/
-│               └── page.tsx       # Edit issue
-├── components/
-│   └── issues/
-│       ├── IssueList.tsx
-│       ├── IssueCard.tsx
-│       ├── IssueForm.tsx
-│       ├── IssueDetail.tsx
-│       ├── ImageUploader.tsx
-│       ├── ImageGallery.tsx
-│       └── StatusBadge.tsx
-├── lib/
-│   ├── r2.ts                      # Cloudflare R2 client
-│   └── validations/
-│       └── issue.ts               # Zod schemas
-└── types/
-    └── issues.ts                  # TypeScript types
-```
+| Action | Member | Creator | Admin |
+|--------|--------|---------|-------|
+| Create Issue | Yes | - | Yes |
+| View Issues | Yes | Yes | Yes |
+| Edit Issue | No | Yes | Yes |
+| Delete Issue | No | Yes | Yes |
+| Change Status | Yes | Yes | Yes |
+| Upload Images | Yes | Yes | Yes |
+| Delete Images | No | Yes | Yes |
+| Create Project | No | - | Yes |
+| Delete Project | No | Yes | Yes |
 
 ## Environment Variables
+
 ```bash
-# Database (existing)
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
+# Required - Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=xxx
 
-# Auth (new - for domain restriction)
-ALLOWED_EMAIL_DOMAINS=nuvaclub.com,company.com
-
-# Cloudflare R2 (new)
-R2_ACCOUNT_ID=
-R2_ACCESS_KEY_ID=
-R2_SECRET_ACCESS_KEY=
+# Required for Image Upload - Cloudflare R2
+R2_ACCOUNT_ID=xxx
+R2_ACCESS_KEY_ID=xxx
+R2_SECRET_ACCESS_KEY=xxx
 R2_BUCKET_NAME=nuvaclub-issues
-R2_PUBLIC_BASE_URL=https://pub-xxx.r2.dev
+R2_PUBLIC_BASE_URL=https://pub-xxx.r2.dev  # Optional
+
+# Optional - Auth
+ALLOWED_EMAIL_DOMAINS=example.com,company.com
 ```
 
-## Integration Points
+## Testing
 
-### Existing Homepage Button
-The "建立 Issue 單" button should be added to:
-1. **Header.tsx** - Add navigation link for authenticated users
-2. **HeroSection.tsx** - Can add a secondary action button
-3. **StepDetail.tsx** - Add contextual issue creation for a step
+The project uses Vitest with React Testing Library:
 
-### Code to Add Button (Header.tsx example)
-```tsx
-{userData?.user && (
-  <Link href="/issues/new" className="...">
-    建立 Issue 單
-  </Link>
-)}
+```bash
+npm test              # Watch mode
+npm run test:run      # Single run
+npm run test:coverage # Coverage report
 ```
+
+Test locations:
+- `src/lib/__tests__/*.test.ts` - Utility tests
+- `src/lib/validations/__tests__/*.test.ts` - Schema tests
+
+## Related Documentation
+
+- `/docs/SETUP.md` - Development setup guide
+- `/docs/INTEGRATION.md` - Integration guide
+- `/docs/PRD-project-improvements.md` - Improvement roadmap
+- `/docs/PRD-UI-UX-Enhancement.md` - UI/UX enhancement plan
+- `/CONTRIBUTING.md` - Contribution guidelines

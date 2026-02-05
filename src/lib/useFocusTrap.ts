@@ -2,6 +2,10 @@
 
 import { useEffect, useRef, useCallback } from 'react'
 
+/**
+ * CSS selector for all focusable elements
+ * Used to find elements that can receive keyboard focus
+ */
 const FOCUSABLE_ELEMENTS = [
   'a[href]',
   'button:not([disabled])',
@@ -11,14 +15,46 @@ const FOCUSABLE_ELEMENTS = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(', ')
 
+/**
+ * Options for the useFocusTrap hook
+ */
 interface UseFocusTrapOptions {
+  /** Whether the trap is active (modal is open) */
   isOpen: boolean
+  /** Optional callback when Escape key is pressed */
   onClose?: () => void
 }
 
 /**
- * Hook to trap focus within a modal/dialog and handle Escape key
- * Returns a ref to attach to the modal container
+ * Hook to trap keyboard focus within a modal/dialog for accessibility
+ *
+ * Implements WCAG 2.1 focus management requirements:
+ * - Traps Tab/Shift+Tab within the modal
+ * - Handles Escape key to close the modal
+ * - Restores focus to the previously focused element when closed
+ * - Auto-focuses the first focusable element when opened
+ *
+ * @template T - The type of HTML element for the container ref
+ * @param options - Configuration options
+ * @param options.isOpen - Whether the modal/dialog is currently open
+ * @param options.onClose - Optional callback invoked when Escape is pressed
+ * @returns A ref to attach to the modal container element
+ *
+ * @example
+ * ```tsx
+ * function Modal({ isOpen, onClose, children }) {
+ *   const containerRef = useFocusTrap({ isOpen, onClose })
+ *
+ *   if (!isOpen) return null
+ *
+ *   return (
+ *     <div ref={containerRef} role="dialog" aria-modal="true">
+ *       {children}
+ *       <button onClick={onClose}>Close</button>
+ *     </div>
+ *   )
+ * }
+ * ```
  */
 export function useFocusTrap<T extends HTMLElement = HTMLDivElement>({
   isOpen,

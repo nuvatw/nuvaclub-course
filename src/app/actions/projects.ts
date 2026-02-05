@@ -6,7 +6,10 @@ import { PRODUCTION_STEPS } from '@/lib/constants/steps'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
-// Use React cache for request deduplication within a single request
+/**
+ * Internal cached function to fetch all projects with their steps
+ * Uses React cache() for request deduplication within a single request
+ */
 const fetchProjects = cache(async () => {
   const supabase = await createClient()
   if (!supabase) return []
@@ -27,6 +30,10 @@ const fetchProjects = cache(async () => {
   return projects
 })
 
+/**
+ * Internal cached function to fetch a single project with steps and links
+ * Uses React cache() for request deduplication within a single request
+ */
 const fetchProject = cache(async (id: string) => {
   const supabase = await createClient()
   if (!supabase) return null
@@ -59,14 +66,64 @@ const fetchProject = cache(async (id: string) => {
   return project
 })
 
+/**
+ * Retrieves all projects with their associated steps
+ *
+ * Results are ordered by creation date (newest first).
+ * Each project includes its 20 production steps.
+ *
+ * @returns Array of projects with steps, or empty array on error
+ *
+ * @example
+ * const projects = await getProjects()
+ * projects.forEach(project => {
+ *   console.log(project.title, project.project_steps.length)
+ * })
+ */
 export async function getProjects() {
   return fetchProjects()
 }
 
+/**
+ * Retrieves a single project by ID with all details
+ *
+ * Includes project steps (sorted by step_index) and step links.
+ *
+ * @param id - The UUID of the project to retrieve
+ * @returns The project with steps and links, or null if not found
+ *
+ * @example
+ * const project = await getProject('project-uuid')
+ * if (project) {
+ *   const completedSteps = project.project_steps.filter(s => s.status === 'done')
+ * }
+ */
 export async function getProject(id: string) {
   return fetchProject(id)
 }
 
+/**
+ * Creates a new project with all 20 production steps
+ *
+ * Only admins can create projects. Steps are initialized with estimated hours
+ * from historical averages (step_time_averages) or default values.
+ * Automatically redirects to the new project page on success.
+ *
+ * @param formData - Form data containing project details
+ * @param formData.title - Project title (required)
+ * @param formData.description - Project description (optional)
+ * @param formData.launchDate - Target launch date (optional)
+ * @throws Error if not authenticated, not admin, or creation fails
+ *
+ * @example
+ * // In a form action
+ * <form action={createProject}>
+ *   <input name="title" required />
+ *   <input name="description" />
+ *   <input name="launchDate" type="date" />
+ *   <button type="submit">Create</button>
+ * </form>
+ */
 export async function createProject(formData: FormData) {
   const supabase = await createClient()
   if (!supabase) throw new Error('Database not configured')
@@ -147,6 +204,23 @@ export async function createProject(formData: FormData) {
   redirect(`/projects/${project.id}`)
 }
 
+/**
+ * Deletes a project and all associated data
+ *
+ * Only the project creator or an admin can delete a project.
+ * Cascade delete removes steps, links, and comments automatically.
+ *
+ * @param projectId - The UUID of the project to delete
+ * @returns Object with success status and optional error message (in Chinese)
+ *
+ * @example
+ * const result = await deleteProject('project-uuid')
+ * if (result.success) {
+ *   showToast({ type: 'success', message: 'Project deleted' })
+ * } else {
+ *   showToast({ type: 'error', message: result.error })
+ * }
+ */
 export async function deleteProject(projectId: string) {
   const supabase = await createClient()
   if (!supabase) {
@@ -193,6 +267,21 @@ export async function deleteProject(projectId: string) {
   return { success: true }
 }
 
+/**
+ * Checks if the current user has permission to delete a specific project
+ *
+ * Returns true if the user is the project creator or an admin.
+ * Safe to call without authentication - returns false on any error.
+ *
+ * @param projectId - The UUID of the project to check
+ * @returns True if user can delete, false otherwise
+ *
+ * @example
+ * const canDelete = await canDeleteProject('project-uuid')
+ * if (canDelete) {
+ *   showDeleteButton()
+ * }
+ */
 export async function canDeleteProject(projectId: string): Promise<boolean> {
   const supabase = await createClient()
   if (!supabase) return false
