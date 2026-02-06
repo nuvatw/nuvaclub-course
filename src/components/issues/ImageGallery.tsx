@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
@@ -29,6 +29,40 @@ export function ImageGallery({ images, canDelete = false, onDelete }: ImageGalle
     isOpen: deleteConfirmId !== null,
     onClose: () => setDeleteConfirmId(null),
   })
+
+  // Navigate to previous image
+  const goToPrevious = useCallback(() => {
+    if (!selectedImage || images.length <= 1) return
+    const currentIndex = images.findIndex((img) => img.id === selectedImage.id)
+    const prevIndex = currentIndex === 0 ? images.length - 1 : currentIndex - 1
+    setSelectedImage(images[prevIndex])
+  }, [selectedImage, images])
+
+  // Navigate to next image
+  const goToNext = useCallback(() => {
+    if (!selectedImage || images.length <= 1) return
+    const currentIndex = images.findIndex((img) => img.id === selectedImage.id)
+    const nextIndex = currentIndex === images.length - 1 ? 0 : currentIndex + 1
+    setSelectedImage(images[nextIndex])
+  }, [selectedImage, images])
+
+  // Keyboard navigation for lightbox
+  useEffect(() => {
+    if (!selectedImage) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        goToPrevious()
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        goToNext()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedImage, goToPrevious, goToNext])
 
   const handleDeleteClick = useCallback(
     (e: React.MouseEvent, imageId: string) => {
@@ -192,11 +226,9 @@ export function ImageGallery({ images, canDelete = false, onDelete }: ImageGalle
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation()
-                    const currentIndex = images.findIndex((img) => img.id === selectedImage.id)
-                    const prevIndex = currentIndex === 0 ? images.length - 1 : currentIndex - 1
-                    setSelectedImage(images[prevIndex])
+                    goToPrevious()
                   }}
-                  aria-label="上一張圖片"
+                  aria-label="上一張圖片 (←)"
                   className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white transition-colors hover:bg-white/20"
                 >
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -207,11 +239,9 @@ export function ImageGallery({ images, canDelete = false, onDelete }: ImageGalle
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation()
-                    const currentIndex = images.findIndex((img) => img.id === selectedImage.id)
-                    const nextIndex = currentIndex === images.length - 1 ? 0 : currentIndex + 1
-                    setSelectedImage(images[nextIndex])
+                    goToNext()
                   }}
-                  aria-label="下一張圖片"
+                  aria-label="下一張圖片 (→)"
                   className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white transition-colors hover:bg-white/20"
                 >
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
