@@ -6,10 +6,9 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
-import { StatusBadge, PrioritySelector } from './StatusBadge'
+import { StatusTrack, PrioritySelector } from './StatusBadge'
 import { ImageGallery } from './ImageGallery'
 import type { IssueWithDetails, IssueStatus, IssuePriority } from '@/types/issues'
-import { ISSUE_STATUS_LABELS } from '@/types/issues'
 import { updateIssueStatus, updateIssuePriority, deleteIssue, deleteIssueImage } from '@/app/actions/issues'
 import { formatDate } from '@/lib/utils'
 import { useFocusTrap } from '@/lib/useFocusTrap'
@@ -19,14 +18,11 @@ interface IssueDetailProps {
   canEdit: boolean
 }
 
-const STATUS_OPTIONS: IssueStatus[] = ['not_started', 'in_progress', 'done', 'cancelled']
-
 export function IssueDetail({ issue, canEdit }: IssueDetailProps) {
   const router = useRouter()
   const { showToast } = useToast()
   const [isPending, startTransition] = useTransition()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [showStatusDropdown, setShowStatusDropdown] = useState(false)
 
   // Optimistic state for status
   const [optimisticStatus, setOptimisticStatus] = useOptimistic(
@@ -47,7 +43,6 @@ export function IssueDetail({ issue, canEdit }: IssueDetailProps) {
 
   const handleStatusChange = useCallback(
     (newStatus: IssueStatus) => {
-      setShowStatusDropdown(false)
       startTransition(async () => {
         setOptimisticStatus(newStatus)
         const result = await updateIssueStatus(issue.id, { status: newStatus })
@@ -143,65 +138,33 @@ export function IssueDetail({ issue, canEdit }: IssueDetailProps) {
         </h1>
       </motion.div>
 
-      {/* Status & Priority Row */}
+      {/* Status Track */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="flex flex-wrap items-center gap-4 mb-6"
+        className="mb-6"
       >
-        {/* Status Dropdown */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-            className="flex items-center gap-1.5"
-            disabled={isPending}
-            aria-label="變更狀態"
-            aria-expanded={showStatusDropdown}
-            aria-haspopup="listbox"
-          >
-            <StatusBadge status={optimisticStatus} />
-            <svg
-              className={`w-4 h-4 text-zinc-400 transition-transform ${showStatusDropdown ? 'rotate-180' : ''}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          {showStatusDropdown && (
-            <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowStatusDropdown(false)} />
-              <div
-                role="listbox"
-                aria-label="狀態選項"
-                className="absolute left-0 top-full z-20 mt-1 w-36 rounded-lg border border-zinc-700 bg-zinc-800 py-1 shadow-lg"
-              >
-                {STATUS_OPTIONS.map((status) => (
-                  <button
-                    key={status}
-                    type="button"
-                    role="option"
-                    aria-selected={status === optimisticStatus}
-                    onClick={() => handleStatusChange(status)}
-                    className={`w-full px-3 py-2 text-left text-sm hover:bg-zinc-700 ${
-                      status === optimisticStatus ? 'bg-zinc-700 text-primary' : 'text-foreground'
-                    }`}
-                  >
-                    {ISSUE_STATUS_LABELS[status].zh}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-sm text-zinc-400">狀態</span>
         </div>
+        <div className="max-w-md">
+          <StatusTrack
+            status={optimisticStatus}
+            onChange={handleStatusChange}
+            disabled={isPending}
+          />
+        </div>
+      </motion.div>
 
-        <div className="h-4 w-px bg-zinc-700" />
-
-        {/* Priority Selector */}
+      {/* Priority Row */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.08 }}
+        className="flex items-center gap-4 mb-6"
+      >
+        <span className="text-sm text-zinc-400">優先度</span>
         <PrioritySelector
           priority={optimisticPriority}
           onChange={handlePriorityChange}
