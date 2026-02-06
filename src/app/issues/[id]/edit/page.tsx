@@ -13,11 +13,11 @@ export async function generateMetadata({ params }: PageProps) {
   const issue = await getIssueById(id)
 
   if (!issue) {
-    return { title: '問題不存在' }
+    return { title: '項目不存在' }
   }
 
   return {
-    title: `編輯: ${issue.title} | 問題`,
+    title: `編輯: ${issue.title} | 開發區`,
   }
 }
 
@@ -62,8 +62,8 @@ export default async function EditIssuePage({ params }: PageProps) {
             </svg>
             返回詳情
           </Link>
-          <h1 className="text-3xl font-bold text-foreground">編輯問題</h1>
-          <p className="mt-2 text-zinc-500">修改問題的內容和資訊</p>
+          <h1 className="text-3xl font-bold text-foreground">編輯項目</h1>
+          <p className="mt-2 text-zinc-500">修改項目的內容和資訊</p>
         </div>
 
         {/* Form */}

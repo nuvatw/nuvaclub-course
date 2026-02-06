@@ -5,8 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { IssueCard } from './IssueCard'
 import { Button } from '@/components/ui/Button'
-import type { IssueWithCreator, IssueStatus, IssuePriority } from '@/types/issues'
-import { ISSUE_STATUS_LABELS, ISSUE_PRIORITY_LABELS } from '@/types/issues'
+import type { IssueWithCreator, IssueCategory, IssueStatus, IssuePriority } from '@/types/issues'
+import { ISSUE_CATEGORY_LABELS, ISSUE_STATUS_LABELS, ISSUE_PRIORITY_LABELS } from '@/types/issues'
 
 interface IssueListProps {
   issues: IssueWithCreator[]
@@ -21,6 +21,7 @@ export function IssueList({ issues, total, page, totalPages }: IssueListProps) {
   const [isPending, startTransition] = useTransition()
 
   const currentFilters = {
+    category: searchParams.get('category') || 'all',
     status: searchParams.get('status') || 'all',
     priority: searchParams.get('priority') || 'all',
     search: searchParams.get('search') || '',
@@ -74,6 +75,7 @@ export function IssueList({ issues, total, page, totalPages }: IssueListProps) {
   }, [router])
 
   const hasActiveFilters =
+    currentFilters.category !== 'all' ||
     currentFilters.status !== 'all' ||
     currentFilters.priority !== 'all' ||
     currentFilters.search !== ''
@@ -102,7 +104,7 @@ export function IssueList({ issues, total, page, totalPages }: IssueListProps) {
               type="text"
               name="search"
               defaultValue={currentFilters.search}
-              placeholder="搜尋問題..."
+              placeholder="搜尋項目..."
               className="w-full rounded-lg border border-zinc-700 bg-zinc-800 py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-zinc-500 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
@@ -113,6 +115,19 @@ export function IssueList({ issues, total, page, totalPages }: IssueListProps) {
 
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-3">
+          <FilterSelect
+            label="分類"
+            value={currentFilters.category}
+            onChange={(v) => updateFilters('category', v)}
+            options={[
+              { value: 'all', label: '全部' },
+              ...(['fix', 'wish'] as IssueCategory[]).map((c) => ({
+                value: c,
+                label: ISSUE_CATEGORY_LABELS[c].zh,
+              })),
+            ]}
+          />
+
           <FilterSelect
             label="狀態"
             value={currentFilters.status}
@@ -192,9 +207,9 @@ export function IssueList({ issues, total, page, totalPages }: IssueListProps) {
                 d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
               />
             </svg>
-            <h3 className="mt-4 text-base font-medium text-foreground">沒有找到問題</h3>
+            <h3 className="mt-4 text-base font-medium text-foreground">沒有找到項目</h3>
             <p className="mt-1 text-sm text-zinc-500">
-              {hasActiveFilters ? '嘗試調整篩選條件' : '建立第一個問題開始追蹤'}
+              {hasActiveFilters ? '嘗試調整篩選條件' : '建立第一個項目開始追蹤'}
             </p>
           </motion.div>
         ) : (

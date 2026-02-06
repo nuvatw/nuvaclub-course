@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
-import { StatusTrack, PrioritySelector } from './StatusBadge'
+import { StatusTrack, PrioritySelector, CategoryBadge } from './StatusBadge'
 import { ImageGallery } from './ImageGallery'
 import type { IssueWithDetails, IssueStatus, IssuePriority } from '@/types/issues'
 import { updateIssueStatus, updateIssuePriority, deleteIssue, deleteIssueImage } from '@/app/actions/issues'
@@ -133,6 +133,9 @@ export function IssueDetail({ issue, canEdit }: IssueDetailProps) {
         className="mb-4"
       >
         <span className="text-lg text-zinc-500 font-medium">#{issue.issue_number}</span>
+        <div className="mt-2">
+          <CategoryBadge category={issue.category} />
+        </div>
         <h1 className="text-2xl font-bold text-foreground mt-1">
           {issue.title}
         </h1>
@@ -270,7 +273,7 @@ export function IssueDetail({ issue, canEdit }: IssueDetailProps) {
             animate={{ opacity: 1, scale: 1 }}
             className="w-full max-w-md rounded-lg border border-zinc-700 bg-zinc-900 p-6"
           >
-            <h3 id="delete-modal-title" className="text-lg font-semibold text-foreground">確定要刪除這個問題？</h3>
+            <h3 id="delete-modal-title" className="text-lg font-semibold text-foreground">確定要刪除這個項目？</h3>
             <p className="mt-2 text-sm text-zinc-400">
               此操作無法復原。所有相關的圖片也會被一併刪除。
             </p>

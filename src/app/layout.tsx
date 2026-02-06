@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "nuvaClub",
-  description: "課程製作與問題追蹤系統",
+  description: "課程製作與開發追蹤系統",
 };
 
 export default async function RootLayout({

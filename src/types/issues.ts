@@ -3,6 +3,7 @@
 // ============================================
 
 // Simplified enum types
+export type IssueCategory = 'fix' | 'wish'
 export type IssuePriority = 'low' | 'medium' | 'high'
 export type IssueStatus = 'not_started' | 'in_progress' | 'done' | 'cancelled'
 
@@ -11,6 +12,7 @@ export interface Issue {
   id: string
   issue_number: number
   title: string
+  category: IssueCategory
   priority: IssuePriority
   status: IssueStatus
   why_background: string | null
@@ -53,6 +55,7 @@ export interface IssueImage {
 // Form data for creating/editing issues (simplified)
 export interface IssueFormData {
   title: string
+  category: IssueCategory
   priority: IssuePriority
   why_background: string
   current_behavior: string
@@ -63,6 +66,7 @@ export interface IssueFormData {
 
 // Filter options for issue list (simplified)
 export interface IssueFilters {
+  category?: IssueCategory | 'all'
   status?: IssueStatus | 'all'
   priority?: IssuePriority | 'all'
   search?: string
@@ -94,6 +98,16 @@ export interface PresignResponse {
 // ============================================
 // Label mappings for UI display (Bilingual)
 // ============================================
+
+export const ISSUE_CATEGORY_LABELS: Record<IssueCategory, { en: string; zh: string }> = {
+  fix: { en: 'Fix', zh: '修理' },
+  wish: { en: 'Wish', zh: '願望' },
+}
+
+export const ISSUE_CATEGORY_COLORS: Record<IssueCategory, string> = {
+  fix: 'bg-orange-500/15 text-orange-400 border border-orange-500/30',
+  wish: 'bg-violet-500/15 text-violet-400 border border-violet-500/30',
+}
 
 export const ISSUE_PRIORITY_LABELS: Record<IssuePriority, { en: string; zh: string }> = {
   low: { en: 'Low', zh: '低' },

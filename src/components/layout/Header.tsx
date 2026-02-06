@@ -64,14 +64,14 @@ export function Header({ user, profile, isAdmin }: HeaderProps) {
                   href="/issues"
                   className="text-sm text-zinc-400 hover:text-foreground transition-colors"
                 >
-                  問題
+                  開發區
                 </Link>
                 <Link href="/issues/new">
                   <Button variant="primary" size="sm">
                     <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
-                    建立問題單
+                    建立項目
                   </Button>
                 </Link>
                 {isAdmin && (

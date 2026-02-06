@@ -2,8 +2,11 @@
 
 import { motion } from 'framer-motion'
 import {
+  type IssueCategory,
   type IssueStatus,
   type IssuePriority,
+  ISSUE_CATEGORY_LABELS,
+  ISSUE_CATEGORY_COLORS,
   ISSUE_STATUS_LABELS,
   ISSUE_STATUS_COLORS,
   ISSUE_PRIORITY_LABELS,
@@ -226,6 +229,59 @@ export function PrioritySelector({ priority, onChange, disabled = false }: Prior
           >
             <span className={`w-2.5 h-2.5 rounded-full ${colorClass}`} />
             <span className="text-sm">{label.zh}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// Category Badge (for display in cards and detail)
+interface CategoryBadgeProps {
+  category: IssueCategory
+}
+
+export function CategoryBadge({ category }: CategoryBadgeProps) {
+  const label = ISSUE_CATEGORY_LABELS[category]
+  const colorClass = ISSUE_CATEGORY_COLORS[category]
+
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${colorClass}`}>
+      {category === 'fix' ? '\u{1F527}' : '\u{2728}'} {label.zh}
+    </span>
+  )
+}
+
+// Category Selector (for forms)
+interface CategorySelectorProps {
+  category: IssueCategory
+  onChange: (category: IssueCategory) => void
+  disabled?: boolean
+}
+
+export function CategorySelector({ category, onChange, disabled = false }: CategorySelectorProps) {
+  const categories: IssueCategory[] = ['fix', 'wish']
+
+  return (
+    <div className="inline-flex items-center gap-3">
+      {categories.map((cat) => {
+        const label = ISSUE_CATEGORY_LABELS[cat]
+        const colorClass = ISSUE_CATEGORY_COLORS[cat]
+        const isSelected = category === cat
+
+        return (
+          <button
+            key={cat}
+            type="button"
+            onClick={() => onChange(cat)}
+            disabled={disabled}
+            className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
+              isSelected
+                ? colorClass
+                : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800'
+            } ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+          >
+            {cat === 'fix' ? '\u{1F527}' : '\u{2728}'} {label.zh}
           </button>
         )
       })}

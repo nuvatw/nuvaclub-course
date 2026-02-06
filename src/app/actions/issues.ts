@@ -108,6 +108,7 @@ export async function createIssue(input: CreateIssueInput): Promise<{ success: b
       .from('issues')
       .insert({
         title: validated.title,
+        category: validated.category,
         priority: validated.priority,
         status: 'not_started',
         why_background: validated.why_background,
@@ -121,7 +122,7 @@ export async function createIssue(input: CreateIssueInput): Promise<{ success: b
 
     if (issueError) {
       console.error('Error creating issue:', issueError)
-      throw new Error('無法建立問題')
+      throw new Error('無法建立項目')
     }
 
     // Link uploaded images to the issue
@@ -175,7 +176,7 @@ export async function getIssues(filters?: IssueFiltersInput): Promise<PaginatedI
 
   // Validate and set defaults for filters
   const validated = issueFiltersSchema.parse(filters || {})
-  const { page, limit, status, priority, search, created_by } = validated
+  const { page, limit, category, status, priority, search, created_by } = validated
 
   // Calculate offset
   const offset = (page - 1) * limit
@@ -192,6 +193,9 @@ export async function getIssues(filters?: IssueFiltersInput): Promise<PaginatedI
     )
 
   // Apply filters
+  if (category && category !== 'all') {
+    query = query.eq('category', category)
+  }
   if (status && status !== 'all') {
     query = query.eq('status', status)
   }
@@ -329,20 +333,21 @@ export async function updateIssue(
     const { data: issue } = await supabase.from('issues').select('created_by').eq('id', id).single()
 
     if (!issue) {
-      throw new Error('找不到此問題')
+      throw new Error('找不到此項目')
     }
 
     const isCreator = issue.created_by === userId
     const isAdminUser = await isAdmin()
 
     if (!isCreator && !isAdminUser) {
-      throw new Error('沒有權限編輯此問題')
+      throw new Error('沒有權限編輯此項目')
     }
 
     // Build update object
     const updateData: Record<string, unknown> = {}
 
     if (validated.title !== undefined) updateData.title = validated.title
+    if (validated.category !== undefined) updateData.category = validated.category
     if (validated.priority !== undefined) updateData.priority = validated.priority
     if (validated.status !== undefined) updateData.status = validated.status
     if (validated.why_background !== undefined) updateData.why_background = validated.why_background
@@ -355,7 +360,7 @@ export async function updateIssue(
 
     if (updateError) {
       console.error('Error updating issue:', updateError)
-      throw new Error('無法更新問題')
+      throw new Error('無法更新項目')
     }
 
     // Link new images if provided
@@ -507,14 +512,14 @@ export async function deleteIssue(id: string): Promise<{ success: boolean; error
       .single()
 
     if (!issue) {
-      throw new Error('找不到此問題')
+      throw new Error('找不到此項目')
     }
 
     const isCreator = issue.created_by === userId
     const isAdminUser = await isAdmin()
 
     if (!isCreator && !isAdminUser) {
-      throw new Error('沒有權限刪除此問題')
+      throw new Error('沒有權限刪除此項目')
     }
 
     const { data: images } = await supabase
@@ -526,7 +531,7 @@ export async function deleteIssue(id: string): Promise<{ success: boolean; error
 
     if (deleteError) {
       console.error('Error deleting issue:', deleteError)
-      throw new Error('無法刪除問題')
+      throw new Error('無法刪除項目')
     }
 
     if (images && images.length > 0) {

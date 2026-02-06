@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
 import { ImageUploader } from './ImageUploader'
-import { PrioritySelector } from './StatusBadge'
-import { type IssuePriority, type IssueWithDetails } from '@/types/issues'
+import { PrioritySelector, CategorySelector } from './StatusBadge'
+import { type IssueCategory, type IssuePriority, type IssueWithDetails } from '@/types/issues'
 import { createIssue, updateIssue, deleteIssueImage } from '@/app/actions/issues'
 
 interface IssueFormProps {
@@ -21,6 +21,7 @@ export function IssueForm({ mode, issue }: IssueFormProps) {
 
   // Form state (simplified)
   const [title, setTitle] = useState(issue?.title || '')
+  const [category, setCategory] = useState<IssueCategory>(issue?.category || 'fix')
   const [priority, setPriority] = useState<IssuePriority>(issue?.priority || 'medium')
   const [whyBackground, setWhyBackground] = useState(issue?.why_background || '')
   const [currentBehavior, setCurrentBehavior] = useState(issue?.current_behavior || '')
@@ -78,6 +79,7 @@ export function IssueForm({ mode, issue }: IssueFormProps) {
       startTransition(async () => {
         const formData = {
           title,
+          category,
           priority,
           why_background: whyBackground,
           current_behavior: currentBehavior,
@@ -108,6 +110,7 @@ export function IssueForm({ mode, issue }: IssueFormProps) {
       mode,
       issueId,
       title,
+      category,
       priority,
       whyBackground,
       currentBehavior,
@@ -138,6 +141,14 @@ export function IssueForm({ mode, issue }: IssueFormProps) {
           }`}
         />
         {errors.title && <p className="mt-1.5 text-sm text-red-400">{errors.title}</p>}
+      </div>
+
+      {/* Category */}
+      <div>
+        <label className="block text-sm font-medium text-zinc-300 mb-3">
+          分類 <span className="text-red-400">*</span>
+        </label>
+        <CategorySelector category={category} onChange={setCategory} />
       </div>
 
       {/* Priority */}
@@ -248,7 +259,7 @@ export function IssueForm({ mode, issue }: IssueFormProps) {
           取消
         </Button>
         <Button type="submit" disabled={isPending}>
-          {isPending ? '處理中...' : mode === 'create' ? '建立問題' : '儲存變更'}
+          {isPending ? '處理中...' : mode === 'create' ? '建立項目' : '儲存變更'}
         </Button>
       </div>
     </form>

@@ -67,7 +67,7 @@ export function HeroSection() {
             transition={{ duration: 0.6, delay: 0.4 }}
             className="text-lg md:text-xl text-zinc-400 mb-12"
           >
-            課程追蹤 & 問題執行小天地
+            課程追蹤 & 開發執行小天地
           </motion.p>
 
           {/* Buttons */}

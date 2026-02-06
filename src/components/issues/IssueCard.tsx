@@ -3,7 +3,7 @@
 import { memo } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { StatusTrackMini, PriorityDot } from './StatusBadge'
+import { StatusTrackMini, PriorityDot, CategoryBadge } from './StatusBadge'
 import type { IssueWithCreator } from '@/types/issues'
 import { formatDate } from '@/lib/utils'
 
@@ -32,9 +32,12 @@ export const IssueCard = memo(function IssueCard({ issue, index = 0 }: IssueCard
             <span className="text-zinc-500 font-normal">#{issue.issue_number}</span>{' '}
             {issue.title}
           </h3>
-          <p className="text-xs text-zinc-500 mt-1">
-            {issue.creator?.full_name || issue.creator?.email?.split('@')[0] || '未知'} · {formatDate(issue.updated_at)}
-          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <CategoryBadge category={issue.category} />
+            <span className="text-xs text-zinc-500">
+              {issue.creator?.full_name || issue.creator?.email?.split('@')[0] || '未知'} · {formatDate(issue.updated_at)}
+            </span>
+          </div>
         </div>
 
         {/* Status */}

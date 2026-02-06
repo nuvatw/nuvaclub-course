@@ -1,4 +1,4 @@
-export { StatusBadge, PriorityDot, PrioritySelector } from './StatusBadge'
+export { StatusBadge, PriorityDot, PrioritySelector, CategoryBadge, CategorySelector } from './StatusBadge'
 export { ImageUploader } from './ImageUploader'
 export { ImageGallery } from './ImageGallery'
 export { IssueForm } from './IssueForm'

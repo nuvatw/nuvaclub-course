@@ -5,6 +5,7 @@ import { z } from 'zod'
 // ============================================
 
 // Enum schemas
+export const issueCategorySchema = z.enum(['fix', 'wish'])
 export const issuePrioritySchema = z.enum(['low', 'medium', 'high'])
 export const issueStatusSchema = z.enum(['not_started', 'in_progress', 'done', 'cancelled'])
 
@@ -14,6 +15,7 @@ export const createIssueSchema = z.object({
     .string()
     .min(5, '標題至少需要 5 個字元')
     .max(200, '標題不能超過 200 個字元'),
+  category: issueCategorySchema,
   priority: issuePrioritySchema,
   why_background: z
     .string()
@@ -41,6 +43,7 @@ export const updateIssueSchema = z.object({
     .min(5, '標題至少需要 5 個字元')
     .max(200, '標題不能超過 200 個字元')
     .optional(),
+  category: issueCategorySchema.optional(),
   priority: issuePrioritySchema.optional(),
   status: issueStatusSchema.optional(),
   why_background: z
@@ -102,6 +105,7 @@ export const confirmUploadSchema = z.object({
 
 // Filter schema for list endpoint (simplified)
 export const issueFiltersSchema = z.object({
+  category: z.union([issueCategorySchema, z.literal('all')]).optional().default('all'),
   status: z.union([issueStatusSchema, z.literal('all')]).optional().default('all'),
   priority: z.union([issuePrioritySchema, z.literal('all')]).optional().default('all'),
   search: z.string().optional(),
