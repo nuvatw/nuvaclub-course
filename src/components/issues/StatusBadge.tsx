@@ -1,6 +1,8 @@
 'use client'
 
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
+import { updateIssueStatus } from '@/app/actions/issues'
 import {
   type IssueCategory,
   type IssueStatus,
@@ -178,6 +180,136 @@ export function StatusTrackMini({ status }: StatusTrackMiniProps) {
         ))}
       </div>
       <span className="text-xs text-zinc-400 w-[4.5em] text-right whitespace-nowrap">{ISSUE_STATUS_LABELS[status].zh}</span>
+    </div>
+  )
+}
+
+// Interactive mini version for cards - allows quick status change
+const STATUS_DOT_COLORS: Record<string, string> = {
+  not_started: 'bg-zinc-400',
+  in_progress: 'bg-amber-400',
+  done: 'bg-emerald-400',
+}
+
+interface StatusTrackMiniInteractiveProps {
+  issueId: string
+  status: IssueStatus
+}
+
+export function StatusTrackMiniInteractive({ issueId, status: initialStatus }: StatusTrackMiniInteractiveProps) {
+  const [status, setStatus] = useState(initialStatus)
+  const [isOpen, setIsOpen] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setStatus(initialStatus)
+  }, [initialStatus])
+
+  useEffect(() => {
+    if (!isOpen) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isOpen])
+
+  const handleStatusChange = async (newStatus: IssueStatus) => {
+    if (newStatus === status) {
+      setIsOpen(false)
+      return
+    }
+    const prevStatus = status
+    setStatus(newStatus)
+    setIsOpen(false)
+    setIsUpdating(true)
+    const result = await updateIssueStatus(issueId, { status: newStatus })
+    if (!result.success) {
+      setStatus(prevStatus)
+    }
+    setIsUpdating(false)
+  }
+
+  const currentIndex = STATUS_TRACK_ORDER.indexOf(status)
+  const isCancelled = status === 'cancelled'
+
+  return (
+    <div
+      ref={ref}
+      className="relative group/status"
+      onClick={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+      }}
+    >
+      {/* Clickable mini track */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        disabled={isUpdating}
+        className={`flex items-center gap-1.5 w-[140px] justify-end flex-shrink-0 rounded-md px-1.5 py-1 -mx-1.5 -my-1 transition-colors hover:bg-zinc-700/50 cursor-pointer ${
+          isUpdating ? 'opacity-60' : ''
+        }`}
+      >
+        <div className="flex gap-0.5">
+          {STATUS_TRACK_ORDER.map((_, index) => (
+            <div
+              key={index}
+              className={`w-6 h-1.5 rounded-full transition-colors ${
+                isCancelled
+                  ? 'bg-zinc-600'
+                  : index <= currentIndex
+                    ? 'bg-primary'
+                    : 'bg-zinc-700'
+              }`}
+            />
+          ))}
+        </div>
+        <span className={`text-xs w-[4.5em] text-right whitespace-nowrap ${
+          isCancelled ? 'text-zinc-500' : 'text-zinc-400'
+        }`}>
+          {ISSUE_STATUS_LABELS[status].zh}
+        </span>
+      </button>
+
+      {/* Hover tooltip */}
+      {!isOpen && (
+        <div className="absolute right-0 -top-8 opacity-0 group-hover/status:opacity-100 transition-opacity pointer-events-none z-50">
+          <span className="px-2 py-1 text-xs bg-zinc-700 text-zinc-300 rounded shadow-lg whitespace-nowrap">
+            修改狀態
+          </span>
+        </div>
+      )}
+
+      {/* Dropdown */}
+      {isOpen && (
+        <div className="absolute right-0 top-full mt-2 z-50 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl py-1 min-w-[120px]">
+          {STATUS_TRACK_ORDER.map((s) => {
+            const isActive = s === status
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => handleStatusChange(s)}
+                disabled={isUpdating}
+                className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors flex items-center gap-2 ${
+                  isActive
+                    ? 'bg-primary/20 text-primary'
+                    : 'text-zinc-400 hover:bg-zinc-700/50 hover:text-white'
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  isActive ? 'bg-primary' : STATUS_DOT_COLORS[s] || 'bg-zinc-600'
+                }`} />
+                {ISSUE_STATUS_LABELS[s].zh}
+              </button>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

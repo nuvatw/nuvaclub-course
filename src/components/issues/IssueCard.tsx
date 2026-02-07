@@ -3,7 +3,7 @@
 import { memo } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { StatusTrackMini, PriorityDot, CategoryBadge } from './StatusBadge'
+import { StatusTrackMiniInteractive, PriorityDot, CategoryBadge } from './StatusBadge'
 import type { IssueWithCreator } from '@/types/issues'
 import { formatDate } from '@/lib/utils'
 
@@ -40,8 +40,8 @@ export const IssueCard = memo(function IssueCard({ issue, index = 0 }: IssueCard
           </div>
         </div>
 
-        {/* Status */}
-        <StatusTrackMini status={issue.status} />
+        {/* Status - interactive, click to change */}
+        <StatusTrackMiniInteractive issueId={issue.id} status={issue.status} />
 
         {/* Arrow */}
         <svg
