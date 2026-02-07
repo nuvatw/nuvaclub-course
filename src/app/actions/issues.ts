@@ -197,7 +197,12 @@ export async function getIssues(filters?: IssueFiltersInput): Promise<PaginatedI
     query = query.eq('category', category)
   }
   if (status && status !== 'all') {
-    query = query.eq('status', status)
+    const statusArr = status.split(',')
+    if (statusArr.length > 1) {
+      query = query.in('status', statusArr)
+    } else {
+      query = query.eq('status', status)
+    }
   }
   if (priority && priority !== 'all') {
     query = query.eq('priority', priority)

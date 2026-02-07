@@ -18,15 +18,19 @@ interface PageProps {
 }
 
 const VALID_CATEGORIES = ['all', 'fix', 'wish'] as const
-const VALID_STATUSES = ['all', 'not_started', 'in_progress', 'done', 'cancelled'] as const
+const VALID_STATUSES = ['not_started', 'in_progress', 'done', 'cancelled'] as const
 const VALID_PRIORITIES = ['all', 'low', 'medium', 'high'] as const
 
 function isValidCategory(value: string | undefined): value is IssueCategory | 'all' {
   return value === undefined || VALID_CATEGORIES.includes(value as typeof VALID_CATEGORIES[number])
 }
 
-function isValidStatus(value: string | undefined): value is IssueStatus | 'all' {
-  return value === undefined || VALID_STATUSES.includes(value as typeof VALID_STATUSES[number])
+function isValidStatus(value: string | undefined): boolean {
+  if (!value) return true
+  if (value === 'all') return true
+  return value.split(',').every(s =>
+    (VALID_STATUSES as readonly string[]).includes(s)
+  )
 }
 
 function isValidPriority(value: string | undefined): value is IssuePriority | 'all' {
@@ -51,7 +55,7 @@ export default async function IssuesPage({ searchParams }: PageProps) {
   // Fetch issues with filters (validate params before using)
   const filters = {
     category: isValidCategory(params.category) ? params.category : 'all',
-    status: isValidStatus(params.status) ? params.status : 'all',
+    status: isValidStatus(params.status) ? (params.status || 'not_started,in_progress') : 'not_started,in_progress',
     priority: isValidPriority(params.priority) ? params.priority : 'all',
     search: params.search,
     page: params.page ? parseInt(params.page) : 1,

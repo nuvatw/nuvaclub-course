@@ -5,8 +5,16 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { IssueCard } from './IssueCard'
 import { Button } from '@/components/ui/Button'
-import type { IssueWithCreator, IssueCategory, IssueStatus, IssuePriority } from '@/types/issues'
-import { ISSUE_CATEGORY_LABELS, ISSUE_STATUS_LABELS, ISSUE_PRIORITY_LABELS } from '@/types/issues'
+import type { IssueWithCreator, IssueCategory, IssuePriority } from '@/types/issues'
+import { ISSUE_CATEGORY_LABELS, ISSUE_PRIORITY_LABELS } from '@/types/issues'
+
+const DEFAULT_STATUSES = ['not_started', 'in_progress']
+
+const STATUS_TAGS = [
+  { value: 'not_started', label: '尚未開始', color: 'bg-zinc-600 border-zinc-500' },
+  { value: 'in_progress', label: '執行中', color: 'bg-amber-600/80 border-amber-500/80' },
+  { value: 'done', label: '完成', color: 'bg-emerald-600/80 border-emerald-500/80' },
+] as const
 
 interface IssueListProps {
   issues: IssueWithCreator[]
@@ -20,9 +28,13 @@ export function IssueList({ issues, total, page, totalPages }: IssueListProps) {
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
 
+  const statusParam = searchParams.get('status')
+  const activeStatuses = statusParam
+    ? statusParam.split(',')
+    : DEFAULT_STATUSES
+
   const currentFilters = {
     category: searchParams.get('category') || 'all',
-    status: searchParams.get('status') || 'all',
     priority: searchParams.get('priority') || 'all',
     search: searchParams.get('search') || '',
   }
@@ -68,15 +80,31 @@ export function IssueList({ issues, total, page, totalPages }: IssueListProps) {
     [searchParams, router]
   )
 
+  const toggleStatus = useCallback(
+    (status: string) => {
+      const newStatuses = activeStatuses.includes(status)
+        ? activeStatuses.filter((s) => s !== status)
+        : [...activeStatuses, status]
+      if (newStatuses.length === 0) return
+      updateFilters('status', newStatuses.join(','))
+    },
+    [activeStatuses, updateFilters]
+  )
+
   const clearFilters = useCallback(() => {
     startTransition(() => {
       router.push('/issues')
     })
   }, [router])
 
+  const isDefaultStatusFilter =
+    !statusParam ||
+    (activeStatuses.length === DEFAULT_STATUSES.length &&
+      DEFAULT_STATUSES.every((s) => activeStatuses.includes(s)))
+
   const hasActiveFilters =
     currentFilters.category !== 'all' ||
-    currentFilters.status !== 'all' ||
+    !isDefaultStatusFilter ||
     currentFilters.priority !== 'all' ||
     currentFilters.search !== ''
 
@@ -128,18 +156,26 @@ export function IssueList({ issues, total, page, totalPages }: IssueListProps) {
             ]}
           />
 
-          <FilterSelect
-            label="狀態"
-            value={currentFilters.status}
-            onChange={(v) => updateFilters('status', v)}
-            options={[
-              { value: 'all', label: '全部' },
-              ...(['not_started', 'in_progress', 'done', 'cancelled'] as IssueStatus[]).map((s) => ({
-                value: s,
-                label: ISSUE_STATUS_LABELS[s].zh,
-              })),
-            ]}
-          />
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-zinc-500">狀態:</span>
+            {STATUS_TAGS.map((tag) => {
+              const isActive = activeStatuses.includes(tag.value)
+              return (
+                <button
+                  key={tag.value}
+                  type="button"
+                  onClick={() => toggleStatus(tag.value)}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                    isActive
+                      ? `${tag.color} text-white`
+                      : 'border-zinc-700 text-zinc-500 hover:border-zinc-600 hover:text-zinc-400'
+                  }`}
+                >
+                  {tag.label}
+                </button>
+              )
+            })}
+          </div>
 
           <FilterSelect
             label="優先度"
