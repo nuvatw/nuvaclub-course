@@ -194,7 +194,12 @@ export async function getIssues(filters?: IssueFiltersInput): Promise<PaginatedI
 
   // Apply filters
   if (category && category !== 'all') {
-    query = query.eq('category', category)
+    const categoryArr = category.split(',')
+    if (categoryArr.length > 1) {
+      query = query.in('category', categoryArr)
+    } else {
+      query = query.eq('category', category)
+    }
   }
   if (status && status !== 'all') {
     const statusArr = status.split(',')
@@ -205,7 +210,12 @@ export async function getIssues(filters?: IssueFiltersInput): Promise<PaginatedI
     }
   }
   if (priority && priority !== 'all') {
-    query = query.eq('priority', priority)
+    const priorityArr = priority.split(',')
+    if (priorityArr.length > 1) {
+      query = query.in('priority', priorityArr)
+    } else {
+      query = query.eq('priority', priority)
+    }
   }
   if (created_by) {
     query = query.eq('created_by', created_by)

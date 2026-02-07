@@ -1,19 +1,31 @@
 'use client'
 
-import { useCallback, useTransition } from 'react'
+import { useCallback, useOptimistic, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { IssueCard } from './IssueCard'
 import { Button } from '@/components/ui/Button'
-import type { IssueWithCreator, IssueCategory, IssuePriority } from '@/types/issues'
-import { ISSUE_CATEGORY_LABELS, ISSUE_PRIORITY_LABELS } from '@/types/issues'
+import type { IssueWithCreator } from '@/types/issues'
 
+const ALL_CATEGORIES = ['fix', 'wish']
 const DEFAULT_STATUSES = ['not_started', 'in_progress']
+const ALL_PRIORITIES = ['high', 'medium', 'low']
+
+const CATEGORY_TAGS = [
+  { value: 'fix', label: '修理', color: 'bg-orange-600/80 border-orange-500/80' },
+  { value: 'wish', label: '願望', color: 'bg-violet-600/80 border-violet-500/80' },
+] as const
 
 const STATUS_TAGS = [
   { value: 'not_started', label: '尚未開始', color: 'bg-zinc-600 border-zinc-500' },
   { value: 'in_progress', label: '執行中', color: 'bg-amber-600/80 border-amber-500/80' },
   { value: 'done', label: '完成', color: 'bg-emerald-600/80 border-emerald-500/80' },
+] as const
+
+const PRIORITY_TAGS = [
+  { value: 'high', label: '高', color: 'bg-red-600/80 border-red-500/80' },
+  { value: 'medium', label: '中', color: 'bg-yellow-600/80 border-yellow-500/80' },
+  { value: 'low', label: '低', color: 'bg-blue-600/80 border-blue-500/80' },
 ] as const
 
 interface IssueListProps {
@@ -28,25 +40,44 @@ export function IssueList({ issues, total, page, totalPages }: IssueListProps) {
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
 
+  // Derive actual state from URL
+  const categoryParam = searchParams.get('category')
   const statusParam = searchParams.get('status')
-  const activeStatuses = statusParam
-    ? statusParam.split(',')
-    : DEFAULT_STATUSES
+  const priorityParam = searchParams.get('priority')
+  const searchValue = searchParams.get('search') || ''
 
-  const currentFilters = {
-    category: searchParams.get('category') || 'all',
-    priority: searchParams.get('priority') || 'all',
-    search: searchParams.get('search') || '',
-  }
+  const categoryFromURL = categoryParam ? categoryParam.split(',') : ALL_CATEGORIES
+  const statusFromURL = statusParam ? statusParam.split(',') : DEFAULT_STATUSES
+  const priorityFromURL = priorityParam ? priorityParam.split(',') : ALL_PRIORITIES
 
-  const updateFilters = useCallback(
-    (key: string, value: string) => {
+  // Optimistic state for instant UI feedback
+  const [activeCategories, setOptimisticCategories] = useOptimistic(categoryFromURL)
+  const [activeStatuses, setOptimisticStatuses] = useOptimistic(statusFromURL)
+  const [activePriorities, setOptimisticPriorities] = useOptimistic(priorityFromURL)
+
+  const toggleFilter = useCallback(
+    (
+      key: string,
+      value: string,
+      current: string[],
+      setOptimistic: (v: string[]) => void,
+      defaults: string[]
+    ) => {
+      const newValues = current.includes(value)
+        ? current.filter((s) => s !== value)
+        : [...current, value]
+      if (newValues.length === 0) return
+
       startTransition(() => {
+        setOptimistic(newValues)
         const params = new URLSearchParams(searchParams.toString())
-        if (value && value !== 'all') {
-          params.set(key, value)
-        } else {
+        const isDefault =
+          newValues.length === defaults.length &&
+          defaults.every((v) => newValues.includes(v))
+        if (isDefault) {
           params.delete(key)
+        } else {
+          params.set(key, newValues.join(','))
         }
         params.delete('page')
         router.push(`/issues?${params.toString()}`)
@@ -60,9 +91,18 @@ export function IssueList({ issues, total, page, totalPages }: IssueListProps) {
       e.preventDefault()
       const formData = new FormData(e.currentTarget)
       const search = formData.get('search') as string
-      updateFilters('search', search)
+      startTransition(() => {
+        const params = new URLSearchParams(searchParams.toString())
+        if (search) {
+          params.set('search', search)
+        } else {
+          params.delete('search')
+        }
+        params.delete('page')
+        router.push(`/issues?${params.toString()}`)
+      })
     },
-    [updateFilters]
+    [searchParams, router]
   )
 
   const goToPage = useCallback(
@@ -80,33 +120,27 @@ export function IssueList({ issues, total, page, totalPages }: IssueListProps) {
     [searchParams, router]
   )
 
-  const toggleStatus = useCallback(
-    (status: string) => {
-      const newStatuses = activeStatuses.includes(status)
-        ? activeStatuses.filter((s) => s !== status)
-        : [...activeStatuses, status]
-      if (newStatuses.length === 0) return
-      updateFilters('status', newStatuses.join(','))
-    },
-    [activeStatuses, updateFilters]
-  )
-
   const clearFilters = useCallback(() => {
     startTransition(() => {
+      setOptimisticCategories(ALL_CATEGORIES)
+      setOptimisticStatuses(DEFAULT_STATUSES)
+      setOptimisticPriorities(ALL_PRIORITIES)
       router.push('/issues')
     })
-  }, [router])
+  }, [router, setOptimisticCategories, setOptimisticStatuses, setOptimisticPriorities])
 
-  const isDefaultStatusFilter =
-    !statusParam ||
-    (activeStatuses.length === DEFAULT_STATUSES.length &&
-      DEFAULT_STATUSES.every((s) => activeStatuses.includes(s)))
+  const isDefaultCategory =
+    activeCategories.length === ALL_CATEGORIES.length &&
+    ALL_CATEGORIES.every((c) => activeCategories.includes(c))
+  const isDefaultStatus =
+    activeStatuses.length === DEFAULT_STATUSES.length &&
+    DEFAULT_STATUSES.every((s) => activeStatuses.includes(s))
+  const isDefaultPriority =
+    activePriorities.length === ALL_PRIORITIES.length &&
+    ALL_PRIORITIES.every((p) => activePriorities.includes(p))
 
   const hasActiveFilters =
-    currentFilters.category !== 'all' ||
-    !isDefaultStatusFilter ||
-    currentFilters.priority !== 'all' ||
-    currentFilters.search !== ''
+    !isDefaultCategory || !isDefaultStatus || !isDefaultPriority || searchValue !== ''
 
   return (
     <div className="space-y-6">
@@ -131,7 +165,7 @@ export function IssueList({ issues, total, page, totalPages }: IssueListProps) {
             <input
               type="text"
               name="search"
-              defaultValue={currentFilters.search}
+              defaultValue={searchValue}
               placeholder="搜尋項目..."
               className="w-full rounded-lg border border-zinc-700 bg-zinc-800 py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-zinc-500 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
@@ -142,29 +176,24 @@ export function IssueList({ issues, total, page, totalPages }: IssueListProps) {
         </form>
 
         {/* Filters */}
-        <div className="flex flex-wrap items-center gap-3">
-          <FilterSelect
-            label="分類"
-            value={currentFilters.category}
-            onChange={(v) => updateFilters('category', v)}
-            options={[
-              { value: 'all', label: '全部' },
-              ...(['fix', 'wish'] as IssueCategory[]).map((c) => ({
-                value: c,
-                label: ISSUE_CATEGORY_LABELS[c].zh,
-              })),
-            ]}
-          />
-
+        <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-zinc-500">狀態:</span>
-            {STATUS_TAGS.map((tag) => {
-              const isActive = activeStatuses.includes(tag.value)
+            <span className="text-xs text-zinc-500">分類:</span>
+            {CATEGORY_TAGS.map((tag) => {
+              const isActive = activeCategories.includes(tag.value)
               return (
                 <button
                   key={tag.value}
                   type="button"
-                  onClick={() => toggleStatus(tag.value)}
+                  onClick={() =>
+                    toggleFilter(
+                      'category',
+                      tag.value,
+                      activeCategories,
+                      setOptimisticCategories,
+                      ALL_CATEGORIES
+                    )
+                  }
                   className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                     isActive
                       ? `${tag.color} text-white`
@@ -177,18 +206,63 @@ export function IssueList({ issues, total, page, totalPages }: IssueListProps) {
             })}
           </div>
 
-          <FilterSelect
-            label="優先度"
-            value={currentFilters.priority}
-            onChange={(v) => updateFilters('priority', v)}
-            options={[
-              { value: 'all', label: '全部' },
-              ...(['high', 'medium', 'low'] as IssuePriority[]).map((p) => ({
-                value: p,
-                label: ISSUE_PRIORITY_LABELS[p].zh,
-              })),
-            ]}
-          />
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-zinc-500">狀態:</span>
+            {STATUS_TAGS.map((tag) => {
+              const isActive = activeStatuses.includes(tag.value)
+              return (
+                <button
+                  key={tag.value}
+                  type="button"
+                  onClick={() =>
+                    toggleFilter(
+                      'status',
+                      tag.value,
+                      activeStatuses,
+                      setOptimisticStatuses,
+                      DEFAULT_STATUSES
+                    )
+                  }
+                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                    isActive
+                      ? `${tag.color} text-white`
+                      : 'border-zinc-700 text-zinc-500 hover:border-zinc-600 hover:text-zinc-400'
+                  }`}
+                >
+                  {tag.label}
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-zinc-500">優先度:</span>
+            {PRIORITY_TAGS.map((tag) => {
+              const isActive = activePriorities.includes(tag.value)
+              return (
+                <button
+                  key={tag.value}
+                  type="button"
+                  onClick={() =>
+                    toggleFilter(
+                      'priority',
+                      tag.value,
+                      activePriorities,
+                      setOptimisticPriorities,
+                      ALL_PRIORITIES
+                    )
+                  }
+                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                    isActive
+                      ? `${tag.color} text-white`
+                      : 'border-zinc-700 text-zinc-500 hover:border-zinc-600 hover:text-zinc-400'
+                  }`}
+                >
+                  {tag.label}
+                </button>
+              )
+            })}
+          </div>
 
           {hasActiveFilters && (
             <button
@@ -289,32 +363,6 @@ export function IssueList({ issues, total, page, totalPages }: IssueListProps) {
           </Button>
         </div>
       )}
-    </div>
-  )
-}
-
-interface FilterSelectProps {
-  label: string
-  value: string
-  onChange: (value: string) => void
-  options: { value: string; label: string }[]
-}
-
-function FilterSelect({ label, value, onChange, options }: FilterSelectProps) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs text-zinc-500">{label}:</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-      >
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
     </div>
   )
 }

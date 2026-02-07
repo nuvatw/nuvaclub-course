@@ -105,9 +105,9 @@ export const confirmUploadSchema = z.object({
 
 // Filter schema for list endpoint (simplified)
 export const issueFiltersSchema = z.object({
-  category: z.union([issueCategorySchema, z.literal('all')]).optional().default('all'),
+  category: z.string().optional().default('all'),
   status: z.string().optional().default('all'),
-  priority: z.union([issuePrioritySchema, z.literal('all')]).optional().default('all'),
+  priority: z.string().optional().default('all'),
   search: z.string().optional(),
   created_by: z.string().uuid().optional(),
   page: z.coerce.number().min(1).default(1),
