@@ -154,19 +154,19 @@ export function StatusTrackMini({ status }: StatusTrackMiniProps) {
 
   if (isCancelled) {
     return (
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 w-[140px] justify-end flex-shrink-0">
         <div className="flex gap-0.5">
           {[0, 1, 2].map((i) => (
             <div key={i} className="w-6 h-1.5 rounded-full bg-zinc-600" />
           ))}
         </div>
-        <span className="text-xs text-zinc-500">撤銷</span>
+        <span className="text-xs text-zinc-500 w-[4.5em] text-right whitespace-nowrap">撤銷</span>
       </div>
     )
   }
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1.5 w-[140px] justify-end flex-shrink-0">
       <div className="flex gap-0.5">
         {STATUS_TRACK_ORDER.map((_, index) => (
           <div
@@ -177,7 +177,7 @@ export function StatusTrackMini({ status }: StatusTrackMiniProps) {
           />
         ))}
       </div>
-      <span className="text-xs text-zinc-400">{ISSUE_STATUS_LABELS[status].zh}</span>
+      <span className="text-xs text-zinc-400 w-[4.5em] text-right whitespace-nowrap">{ISSUE_STATUS_LABELS[status].zh}</span>
     </div>
   )
 }
