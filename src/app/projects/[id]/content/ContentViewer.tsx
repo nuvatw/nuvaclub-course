@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { ContentSidebar } from '@/components/content/ContentSidebar'
 import { ContentBreadcrumb } from '@/components/content/ContentBreadcrumb'
 import { MarkdownRenderer } from '@/components/content/MarkdownRenderer'
-import { MindMapHero } from '@/components/content/MindMapHero'
 import type { Chapter } from '@/content/course/_config'
 
 interface AdjacentSection {
@@ -61,9 +60,6 @@ export function ContentViewer({
           {sectionTitle}
         </span>
       </div>
-
-      {/* Mind map hero */}
-      <MindMapHero chapters={toc} currentChapter={currentChapter} />
 
       {/* Main layout: sidebar + content */}
       <div className="flex flex-1 overflow-hidden">

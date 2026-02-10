@@ -11,7 +11,7 @@ interface ContentPageProps {
 
 export default async function ContentPage({ params, searchParams }: ContentPageProps) {
   const { id } = await params
-  const { ch = 'ch1', s = '1.0' } = await searchParams
+  const { ch = 'ch1', s = '1.1' } = await searchParams
 
   const project = await getProject(id)
   if (!project) notFound()
