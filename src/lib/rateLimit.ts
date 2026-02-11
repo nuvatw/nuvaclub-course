@@ -111,6 +111,8 @@ export const RATE_LIMIT_CONFIGS = {
   imageConfirm: { limit: 10, windowMs: 60 * 1000 },
   /** Image delete: 20 requests per minute */
   imageDelete: { limit: 20, windowMs: 60 * 1000 },
+  /** Notify engineer: 10 emails per hour */
+  notifyEngineer: { limit: 10, windowMs: 60 * 60 * 1000 },
 } as const
 
 /**

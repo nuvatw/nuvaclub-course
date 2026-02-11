@@ -1,10 +1,9 @@
 import { Suspense } from 'react'
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getIssues } from '@/app/actions/issues'
 import { getUserData } from '@/lib/auth'
 import { IssueList } from '@/components/issues'
-import { Button } from '@/components/ui/Button'
+import { IssuePageHeader } from '@/components/issues/IssuePageHeader'
 interface PageProps {
   searchParams: Promise<{
     category?: string
@@ -55,30 +54,7 @@ export default async function IssuesPage({ searchParams }: PageProps) {
     <main className="min-h-screen bg-background px-4 py-8">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">開發區</h1>
-            <p className="mt-1 text-zinc-500">內部開發追蹤系統</p>
-          </div>
-          <Link href="/issues/new">
-            <Button>
-              <svg
-                className="mr-2 h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              建立項目
-            </Button>
-          </Link>
-        </div>
+        <IssuePageHeader issues={result.issues} />
 
         {/* Issue List */}
         <Suspense

@@ -114,6 +114,15 @@ export const issueFiltersSchema = z.object({
   limit: z.coerce.number().min(1).max(100).default(20),
 })
 
+// Notify engineer schema
+export const notifyEngineerSchema = z.object({
+  recipientEmail: z.email('請輸入有效的 Email 地址'),
+  issueIds: z.array(z.string().uuid()).min(1, '請至少選擇一個項目'),
+  message: z.string().max(500, '附加訊息不能超過 500 字').optional(),
+})
+
+export type NotifyEngineerInput = z.infer<typeof notifyEngineerSchema>
+
 // Export types from schemas
 export type CreateIssueInput = z.infer<typeof createIssueSchema>
 export type UpdateIssueInput = z.infer<typeof updateIssueSchema>
