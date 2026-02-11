@@ -187,6 +187,18 @@ export function IssueDetail({ issue, canEdit }: IssueDetailProps) {
         <span>建立於 {formatDate(issue.created_at)}</span>
         <span>·</span>
         <span>更新於 {formatDate(issue.updated_at)}</span>
+        {issue.due_date && (
+          <>
+            <span>·</span>
+            <span className={
+              issue.status !== 'done' && issue.status !== 'cancelled' && new Date(issue.due_date) < new Date(new Date().toDateString())
+                ? 'text-red-400'
+                : ''
+            }>
+              預計完成 {formatDate(issue.due_date)}
+            </span>
+          </>
+        )}
       </motion.div>
 
       {/* Content Sections */}

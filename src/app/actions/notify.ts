@@ -13,7 +13,7 @@ import {
   type IssuePriority,
 } from '@/types/issues'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://course.meetnuva.com'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://nuvaclub-course-7nlq.vercel.app'
 
 function escapeHtml(str: string): string {
   return str

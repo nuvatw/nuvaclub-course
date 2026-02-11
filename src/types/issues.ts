@@ -19,6 +19,7 @@ export interface Issue {
   current_behavior: string | null
   expected_behavior: string | null
   acceptance_criteria: string | null
+  due_date: string | null
   created_by: string
   created_at: string
   updated_at: string
@@ -61,6 +62,7 @@ export interface IssueFormData {
   current_behavior: string
   expected_behavior: string
   acceptance_criteria: string
+  due_date: string
   image_ids?: string[]
 }
 

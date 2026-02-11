@@ -12,4 +12,4 @@ export function getResend(): Resend {
   return _resend
 }
 
-export const EMAIL_FROM = 'nuvaClub 開發區 <hello@meetnuva.com>'
+export const EMAIL_FROM = 'nuvaClub 開發區 <hello@nuvanuvanuva.com>'

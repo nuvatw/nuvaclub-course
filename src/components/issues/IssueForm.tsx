@@ -27,6 +27,7 @@ export function IssueForm({ mode, issue }: IssueFormProps) {
   const [currentBehavior, setCurrentBehavior] = useState(issue?.current_behavior || '')
   const [expectedBehavior, setExpectedBehavior] = useState(issue?.expected_behavior || '')
   const [acceptanceCriteria, setAcceptanceCriteria] = useState(issue?.acceptance_criteria || '')
+  const [dueDate, setDueDate] = useState(issue?.due_date || '')
   const [imageIds, setImageIds] = useState<string[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -65,10 +66,13 @@ export function IssueForm({ mode, issue }: IssueFormProps) {
     if (acceptanceCriteria.length < 10) {
       newErrors.acceptanceCriteria = '驗收條件至少需要 10 個字元'
     }
+    if (!dueDate) {
+      newErrors.dueDate = '請選擇預計完成日期'
+    }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
-  }, [title, whyBackground, currentBehavior, expectedBehavior, acceptanceCriteria])
+  }, [title, whyBackground, currentBehavior, expectedBehavior, acceptanceCriteria, dueDate])
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
@@ -85,6 +89,7 @@ export function IssueForm({ mode, issue }: IssueFormProps) {
           current_behavior: currentBehavior,
           expected_behavior: expectedBehavior,
           acceptance_criteria: acceptanceCriteria,
+          due_date: dueDate,
           image_ids: imageIds,
         }
 
@@ -116,6 +121,7 @@ export function IssueForm({ mode, issue }: IssueFormProps) {
       currentBehavior,
       expectedBehavior,
       acceptanceCriteria,
+      dueDate,
       imageIds,
       router,
       showToast,
@@ -157,6 +163,24 @@ export function IssueForm({ mode, issue }: IssueFormProps) {
           優先度 <span className="text-red-400">*</span>
         </label>
         <PrioritySelector priority={priority} onChange={setPriority} />
+      </div>
+
+      {/* Due Date */}
+      <div>
+        <label className="block text-sm font-medium text-zinc-300 mb-2">
+          預計完成日期 <span className="text-red-400">*</span>
+        </label>
+        <input
+          type="date"
+          value={dueDate}
+          onChange={(e) => setDueDate(e.target.value)}
+          className={`w-full max-w-xs rounded-lg border px-4 py-3 text-foreground focus:outline-none focus:ring-2 ${
+            errors.dueDate
+              ? 'border-red-500 focus:ring-red-500'
+              : 'border-zinc-700 bg-zinc-800 focus:ring-primary focus:border-primary'
+          }`}
+        />
+        {errors.dueDate && <p className="mt-1.5 text-sm text-red-400">{errors.dueDate}</p>}
       </div>
 
       {/* Background */}

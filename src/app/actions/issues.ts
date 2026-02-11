@@ -115,6 +115,7 @@ export async function createIssue(input: CreateIssueInput): Promise<{ success: b
         current_behavior: validated.current_behavior,
         expected_behavior: validated.expected_behavior,
         acceptance_criteria: validated.acceptance_criteria,
+        due_date: validated.due_date,
         created_by: userId,
       })
       .select('id')
@@ -369,6 +370,7 @@ export async function updateIssue(
     if (validated.current_behavior !== undefined) updateData.current_behavior = validated.current_behavior
     if (validated.expected_behavior !== undefined) updateData.expected_behavior = validated.expected_behavior
     if (validated.acceptance_criteria !== undefined) updateData.acceptance_criteria = validated.acceptance_criteria
+    if (validated.due_date !== undefined) updateData.due_date = validated.due_date
 
     // Update the issue
     const { error: updateError } = await supabase.from('issues').update(updateData).eq('id', id)

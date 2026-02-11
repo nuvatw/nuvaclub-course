@@ -33,6 +33,7 @@ export const createIssueSchema = z.object({
     .string()
     .min(10, '驗收條件至少需要 10 個字元')
     .max(5000, '驗收條件不能超過 5000 個字元'),
+  due_date: z.string().min(1, '請選擇預計完成日期'),
   image_ids: z.array(z.string().uuid()).optional(),
 })
 
@@ -66,6 +67,7 @@ export const updateIssueSchema = z.object({
     .min(10, '驗收條件至少需要 10 個字元')
     .max(5000, '驗收條件不能超過 5000 個字元')
     .optional(),
+  due_date: z.string().optional(),
   image_ids: z.array(z.string().uuid()).optional(),
 })
 

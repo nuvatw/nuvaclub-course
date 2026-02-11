@@ -37,6 +37,15 @@ export const IssueCard = memo(function IssueCard({ issue, index = 0 }: IssueCard
             <span className="text-xs text-zinc-500">
               {issue.creator?.full_name || issue.creator?.email?.split('@')[0] || '未知'} · {formatDate(issue.updated_at)}
             </span>
+            {issue.due_date && (
+              <span className={`text-xs ${
+                issue.status !== 'done' && issue.status !== 'cancelled' && new Date(issue.due_date) < new Date(new Date().toDateString())
+                  ? 'text-red-400'
+                  : 'text-zinc-500'
+              }`}>
+                · 預計 {formatDate(issue.due_date)}
+              </span>
+            )}
           </div>
         </div>
 
