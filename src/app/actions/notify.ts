@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { resend, EMAIL_FROM } from '@/lib/resend'
+import { getResend, EMAIL_FROM } from '@/lib/resend'
 import { notifyEngineerSchema, type NotifyEngineerInput } from '@/lib/validations/issue'
 import { checkRateLimit, RATE_LIMIT_CONFIGS } from '@/lib/rateLimit'
 import {
@@ -155,7 +155,7 @@ export async function notifyEngineer(
   const html = buildEmailHtml(issues as IssueRow[], message)
   const subject = `[nuvaClub 開發區] 你有 ${issues.length} 個項目需要關注`
 
-  const { error: sendError } = await resend.emails.send({
+  const { error: sendError } = await getResend().emails.send({
     from: EMAIL_FROM,
     to: recipientEmail,
     subject,
