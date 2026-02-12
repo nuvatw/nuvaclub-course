@@ -155,16 +155,22 @@ export async function notifyEngineer(
   const html = buildEmailHtml(issues as IssueRow[], message)
   const subject = `[nuvaClub 開發區] 你有 ${issues.length} 個項目需要關注`
 
-  const { error: sendError } = await getResend().emails.send({
-    from: EMAIL_FROM,
-    to: recipientEmail,
-    subject,
-    html,
-  })
+  try {
+    const { error: sendError } = await getResend().emails.send({
+      from: EMAIL_FROM,
+      to: recipientEmail,
+      subject,
+      html,
+    })
 
-  if (sendError) {
-    console.error('Resend error:', sendError)
-    return { success: false, error: '郵件發送失敗，請稍後再試' }
+    if (sendError) {
+      console.error('Resend error:', sendError)
+      return { success: false, error: `郵件發送失敗：${sendError.message}` }
+    }
+  } catch (err) {
+    console.error('Email send error:', err)
+    const message = err instanceof Error ? err.message : '未知錯誤'
+    return { success: false, error: `郵件發送失敗：${message}` }
   }
 
   return { success: true }
